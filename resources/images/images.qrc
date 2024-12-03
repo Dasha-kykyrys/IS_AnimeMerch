@@ -1,0 +1,45 @@
+<RCC>
+  <qresource prefix="image">
+    <file>confirmdate_pressbutton.png</file>
+    <file>delet_pressbutton.png</file>
+    <file>edit_pressbutton.png</file>
+    <file>creat_pressbutton.png</file>
+    <file>print_pressbutton.png</file>
+    <file>save_pressbutton.png</file>
+    <file>confirm_pressbutton.png</file>
+    <file>remove_pressbutton.png</file>
+    <file>add_pressbutton.png</file>
+    <file>confirm_disablebutton.png</file>
+    <file>find_pressbutton.png</file>
+    <file>save_button.png</file>
+    <file>sendtoprint_button.png</file>
+    <file>confirmdate_button.png</file>
+    <file>animetable_pressbutton.png</file>
+    <file>animetable_button.png</file>
+    <file>productstable_pressbutton.png</file>
+    <file>productstable_button.png</file>
+    <file>print_button.png</file>
+    <file>creat_button.png</file>
+    <file>delet_button.png</file>
+    <file>edit_button.png</file>
+    <file>scrollbar_up.png</file>
+    <file>scrollbar_down.png</file>
+    <file>managment_hoverbutton.png</file>
+    <file>catalog_hoverbutton.png</file>
+    <file>sales_hoverbutton.png</file>
+    <file>add_disablebutton.png</file>
+    <file>remove_disablebutton.png</file>
+    <file>scrollbar_left.png</file>
+    <file>scrollbar_right.png</file>
+    <file>confirm_button.png</file>
+    <file>find_button.png</file>
+    <file>catalog_button.png</file>
+    <file>managment_button.png</file>
+    <file>sales_button.png</file>
+    <file>managment_pressbutton.png</file>
+    <file>sales_pressbutton.png</file>
+    <file>catalog_pressbutton.png</file>
+    <file>remove_button.png</file>
+    <file>add_button.png</file>
+  </qresource>
+</RCC>
