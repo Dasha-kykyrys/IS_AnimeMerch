@@ -1,5 +1,10 @@
 <RCC>
   <qresource prefix="image">
+    <file>sendtoprint_pressbutton.png</file>
+    <file>cancel_pressbutton.png</file>
+    <file>cancel_button.png</file>
+    <file>ok_pressbutton.png</file>
+    <file>ok_button.png</file>
     <file>confirmdate_pressbutton.png</file>
     <file>delet_pressbutton.png</file>
     <file>edit_pressbutton.png</file>
