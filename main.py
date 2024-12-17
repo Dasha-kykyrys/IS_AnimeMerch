@@ -18,7 +18,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui_main_window.animetable_button.clicked.connect(self.open_anime_table)
         self.ui_main_window.productstable_button.clicked.connect(self.open_product_table)
         self.ui_main_window.print_button.clicked.connect(self.open_preview)
-        self.ui_main_window.creat_button.clicked.connect(self.open_create_edit_product)
+        self.ui_main_window.creat_button.clicked.connect(self.open_create_edit)
 
     def change_widget(self, index):
         if index == 0:
@@ -46,13 +46,18 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui_main_window.animetable_button.setEnabled(True)
         self.ui_main_window.productstable_button.setEnabled(False)
 
-    def open_create_edit_product(self):
-        create_edit_product.setWindowModality(Qt.ApplicationModal)
-        create_edit_product.show()
+    def open_create_edit(self):
+        if self.ui_main_window.productstable_button.isEnabled():
+            create_edit_anime.setWindowModality(Qt.ApplicationModal)
+            create_edit_anime.show()
+        else:
+            create_edit_product.setWindowModality(Qt.ApplicationModal)
+            create_edit_product.show()
 
     def open_preview(self):
         preview.setWindowModality(Qt.ApplicationModal)
         preview.show()
+
 
 class CreateEditProduct(QtWidgets.QWidget):
     def __init__(self):
