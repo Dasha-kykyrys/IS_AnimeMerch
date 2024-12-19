@@ -1,16 +1,16 @@
 import psycopg2
+from PyQt5.QtGui import QStandardItem
 from psycopg2 import sql
 import subprocess
 import os
 
-info_dbname = 'anime_merch'  # Подключаемся к стандартной базе данных
+info_dbname = 'anime_merch'
 info_user = 'postgres'
 info_password = '67admin45'
 info_host = 'localhost'
 info_port = '5432'
 
 def restore_database(user, password, dbname, host, port):
-    # Путь к psql.exe
     psql_path = r'C:\Program Files\PostgreSQL\17\bin\psql.exe'
     sql_file_path = 'anime_merch.sql'
 
@@ -27,7 +27,6 @@ def restore_database(user, password, dbname, host, port):
     )
 
 def save_database(user, password, dbname, host, port):
-    # Укажите полный путь к pg_dump.exe
     pg_dump_path = r'C:\Program Files\PostgreSQL\17\bin\pg_dump.exe'  # Замените на ваш путь
     backup_file_path = 'anime_merch.sql'
     os.environ['PGPASSWORD'] = password
@@ -43,9 +42,8 @@ def save_database(user, password, dbname, host, port):
     )
 
 def ensure_db_exists(dbname):
-    # Подключаемся к стандартной базе данных postgres для выполнения операций
     conn = psycopg2.connect(
-        dbname='postgres',  # Подключаемся к стандартной базе данных
+        dbname='postgres',
         user= info_user,
         password= info_password,
         host= info_host,
@@ -66,13 +64,99 @@ def ensure_db_exists(dbname):
     cursor.close()
     conn.close()
 
-def connect_db(dbname):
-    ensure_db_exists(dbname)
+def connect_db():
+    ensure_db_exists(info_dbname)
     conn = psycopg2.connect(
-        dbname= dbname,
+        dbname= info_dbname,
         user= info_user,
         password= info_password,
         host= info_host,
         port= info_port
     )
-    return conn
+    cursor = conn.cursor()
+    return cursor, conn
+
+def load_data_from_db(model, name_table):
+    cursor, conn = connect_db()
+
+    if name_table == 'anime_table':
+        # Выполнение SQL запроса
+        cursor.execute("SELECT a_name FROM anime;")
+        rows = cursor.fetchall()
+
+        # Добавьте данные в модель
+        for index, row in enumerate(rows):
+            model.appendRow([
+                QStandardItem(str(index + 1)),  # Номер
+                QStandardItem(row[0]),  # Наименование
+                QStandardItem()  # Ячейка для кнопок или других действий
+            ])
+
+    elif name_table == 'product_table':
+        # Выполнение SQL запроса
+        cursor.execute("""SELECT p_name, a.a_name, p_price, p_count
+                        FROM product p
+                        JOIN anime a ON p.p_anime = a.id_anime;""")
+        rows = cursor.fetchall()
+
+        # Добавьте данные в модель
+        for index, row in enumerate(rows):
+            model.appendRow([
+                QStandardItem(str(index + 1)),  # Номер
+                QStandardItem(row[0]),  # Наименование продукта
+                QStandardItem(row[1]),  # Наименование аниме
+                QStandardItem(f"{row[2]:.2f}"),  # Цена
+                QStandardItem(str(row[3]))  # Количество
+            ])
+
+    cursor.close()
+    conn.close()
+
+def add_to_database(name_edit, anime_edit, price_edit, count_edit):
+    name = name_edit.text().strip()  # Наименование
+    anime = anime_edit.text().strip()  # Аниме
+    price = price_edit.text().strip()  # Цена
+    count = count_edit.text().strip()  # Количество
+
+    if name and anime and price and count:  # Проверка, что все поля заполнены
+        cursor, conn = connect_db()
+
+        try:
+            print("Соединение с базой данных успешно установлено.")
+
+            # Получаем ID аниме
+            cursor.execute("SELECT id_anime FROM anime WHERE a_name = %s;", (anime,))
+            anime_id = cursor.fetchone()
+
+            # Извлекаем ID из кортежа
+            anime_id = anime_id[0]
+
+            # Приводим price и count к нужным типам данных, если это необходимо
+            price = float(price)  # Убедитесь, что цена - это число
+            count = int(count)    # Убедитесь, что количество - это целое число
+
+            # SQL-запрос для вставки данных
+            cursor.execute("""
+                INSERT INTO products (p_name, p_anime, p_price, p_count) 
+                VALUES (%s, %s, %s, %s)
+            """, (name, anime_id, price, count))
+
+            # Сохранение изменений
+            conn.commit()
+
+            # Очистка полей
+            name_edit.clear()
+            anime_edit.clear()
+            price_edit.clear()
+            count_edit.clear()
+
+            print("Данные успешно добавлены!")
+
+        except Exception as e:
+            print(f"Ошибка: {e}")
+        finally:
+            cursor.close()
+            conn.close()
+            print("Соединение с базой данных закрыто.")
+    else:
+        print("Пожалуйста, заполните все поля.")

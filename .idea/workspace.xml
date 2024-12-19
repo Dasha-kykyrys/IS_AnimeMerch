@@ -5,10 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="2782cb93-3d55-465a-b2f3-5f0cd01fdfb9" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/TestDataBase.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/GUI.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/AddButtonInTable.py" beforeDir="false" afterPath="$PROJECT_DIR$/AddButtonInTable.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/GUI.ui" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/anime_merch.sql" beforeDir="false" afterPath="$PROJECT_DIR$/anime_merch.sql" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/database.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/management.py" beforeDir="false" />
@@ -57,7 +57,7 @@
     "Python.sales.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "master",
-    "last_opened_file_path": "C:/Users/user/OneDrive/Desktop/IS_AnimeMerch",
+    "last_opened_file_path": "C:/Users/user/Downloads/Todo-App-with-Flask-main",
     "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
 }]]></component>

@@ -185,7 +185,7 @@ QDateEdit::drop-down {
            <bool>true</bool>
           </property>
           <property name="buttonSymbols">
-           <enum>QAbstractSpinBox::UpDownArrows</enum>
+           <enum>QAbstractSpinBox::NoButtons</enum>
           </property>
           <property name="keyboardTracking">
            <bool>true</bool>
@@ -237,6 +237,9 @@ QDateEdit::drop-down {
     height: 10px;
 	border-image: url(:/image/scrollbar_down.png);
 }</string>
+          </property>
+          <property name="buttonSymbols">
+           <enum>QAbstractSpinBox::NoButtons</enum>
           </property>
           <property name="calendarPopup">
            <bool>true</bool>
@@ -537,7 +540,7 @@ QPushButton:hover{
   </widget>
  </widget>
  <resources>
-  <include location="resources/images/images.qrc"/>
+  <include location="../resources/images/images.qrc"/>
  </resources>
  <connections/>
 </ui>
