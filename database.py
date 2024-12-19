@@ -84,6 +84,7 @@ def load_data_from_db(model, name_table):
         cursor.execute("SELECT a_name FROM anime;")
         rows = cursor.fetchall()
 
+        model.clear()
         # Добавьте данные в модель
         for index, row in enumerate(rows):
             model.appendRow([
@@ -94,6 +95,7 @@ def load_data_from_db(model, name_table):
 
     elif name_table == 'product_table':
         # Выполнение SQL запроса
+        model.clear()
         cursor.execute("""SELECT p_name, a.a_name, p_price, p_count
                         FROM product p
                         JOIN anime a ON p.p_anime = a.id_anime;""")
@@ -112,51 +114,77 @@ def load_data_from_db(model, name_table):
     cursor.close()
     conn.close()
 
-def add_to_database(name_edit, anime_edit, price_edit, count_edit):
-    name = name_edit.text().strip()  # Наименование
-    anime = anime_edit.text().strip()  # Аниме
-    price = price_edit.text().strip()  # Цена
-    count = count_edit.text().strip()  # Количество
-
+def add_to_database_product(name, anime, price, count):
     if name and anime and price and count:  # Проверка, что все поля заполнены
         cursor, conn = connect_db()
 
-        try:
-            print("Соединение с базой данных успешно установлено.")
+        # Получаем ID аниме
+        cursor.execute("SELECT id_anime FROM anime WHERE a_name = %s;", (anime,))
+        anime_id = cursor.fetchone()
 
-            # Получаем ID аниме
-            cursor.execute("SELECT id_anime FROM anime WHERE a_name = %s;", (anime,))
-            anime_id = cursor.fetchone()
-
-            # Извлекаем ID из кортежа
-            anime_id = anime_id[0]
-
-            # Приводим price и count к нужным типам данных, если это необходимо
-            price = float(price)  # Убедитесь, что цена - это число
-            count = int(count)    # Убедитесь, что количество - это целое число
-
-            # SQL-запрос для вставки данных
-            cursor.execute("""
-                INSERT INTO products (p_name, p_anime, p_price, p_count) 
-                VALUES (%s, %s, %s, %s)
-            """, (name, anime_id, price, count))
-
-            # Сохранение изменений
-            conn.commit()
-
-            # Очистка полей
-            name_edit.clear()
-            anime_edit.clear()
-            price_edit.clear()
-            count_edit.clear()
-
-            print("Данные успешно добавлены!")
-
-        except Exception as e:
-            print(f"Ошибка: {e}")
-        finally:
+        if anime_id is None:  # Если аниме не найдено
             cursor.close()
             conn.close()
-            print("Соединение с базой данных закрыто.")
-    else:
-        print("Пожалуйста, заполните все поля.")
+            return False
+
+        # Извлекаем ID из кортежа
+        anime_id = anime_id[0]
+
+        # Приводим price и count к нужным типам данных, если это необходимо
+        price = float(price)  # Убедитесь, что цена - это число
+        count = int(count)    # Убедитесь, что количество - это целое число
+
+        # SQL-запрос для вставки данных
+        cursor.execute("""
+            INSERT INTO product (p_name, p_anime, p_price, p_count) 
+            VALUES (%s, %s, %s, %s)
+        """, (name, anime_id, price, count))
+
+        # Сохранение изменений
+        conn.commit()
+
+        cursor.close()
+        conn.close()
+
+        return True
+
+def add_to_database_anime(name):
+    if name:  # Проверка, что все поля заполнены
+        cursor, conn = connect_db()
+
+        # SQL-запрос для вставки данных
+        cursor.execute("""
+                INSERT INTO anime (a_name) 
+                VALUES (%s)
+        """, (name,))
+
+        # Сохранение изменений
+        conn.commit()
+
+        cursor.close()
+        conn.close()
+
+def delete_anime_by_name(anime_name):
+    cursor, conn = connect_db()
+
+    cursor.execute("DELETE FROM anime WHERE a_name = %s;", (anime_name,))
+    conn.commit()
+
+    cursor.close()
+    conn.close()
+
+def delete_product(name, anime, price, count):
+    cursor, conn = connect_db()
+
+    cursor.execute("SELECT id_anime FROM anime WHERE a_name = %s;", (anime,))
+    anime_id = cursor.fetchone()
+    anime_id = anime_id[0]
+
+    cursor.execute("""
+            DELETE FROM product 
+            WHERE p_name = %s AND p_anime = %s AND p_price = %s AND p_count = %s
+        """, (name, anime_id, price, count))
+    conn.commit()
+
+    cursor.close()
+    conn.close()

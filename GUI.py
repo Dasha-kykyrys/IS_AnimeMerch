@@ -850,9 +850,12 @@ class ItemDelegateCheck(QWidget):
         self.setLayout(self.horizontalLayout)
 
 class ItemDelegateData(QWidget):
-    def __init__(self, text, parent=None):
+    delete_requested = QtCore.pyqtSignal(int)  # Сигнал для запроса удаления
+
+    def __init__(self, text, row, parent=None):
         super(ItemDelegateData, self).__init__(parent)
 
+        self.row = row  # Номер строки
         self.horizontalLayoutWidget = QtWidgets.QWidget(self)
         self.horizontalLayoutWidget.setObjectName("horizontalLayoutWidget")
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget)
@@ -864,11 +867,10 @@ class ItemDelegateData(QWidget):
         self.edit_button.setMaximumSize(QtCore.QSize(32, 32))
         self.edit_button.setStyleSheet("QPushButton{\n"
                                         "  border-image: url(:/image/edit_button.png);\n"
-                                           "}\n"
-                                           "\n"
-                                           "QPushButton:pressed {\n"
-                                           "  border-image: url(:/image/edit_pressbutton.png);\n"
-                                           "}\n"
+                                        "}\n"
+                                        "QPushButton:pressed {\n"
+                                        "  border-image: url(:/image/edit_pressbutton.png);\n"
+                                        "}\n"
                                         )
         self.edit_button.setObjectName("edit_button")
         self.horizontalLayout.addWidget(self.edit_button)
@@ -877,18 +879,23 @@ class ItemDelegateData(QWidget):
         self.delet_button.setMinimumSize(QtCore.QSize(32, 32))
         self.delet_button.setMaximumSize(QtCore.QSize(32, 32))
         self.delet_button.setStyleSheet("QPushButton{\n"
-                                           "  border-image: url(:/image/delet_button.png);\n"
-                                           "}\n"
-                                           "\n"
-                                           "QPushButton:pressed {\n"
-                                           "  border-image: url(:/image/delet_pressbutton.png);\n"
-                                           "}\n"
+                                         "  border-image: url(:/image/delet_button.png);\n"
+                                         "}\n"
+                                         "QPushButton:pressed {\n"
+                                         "  border-image: url(:/image/delet_pressbutton.png);\n"
+                                         "}\n"
                                         )
         self.delet_button.setObjectName("delet_button")
         self.horizontalLayout.addWidget(self.delet_button)
 
         # Установка компоновки для виджета
         self.setLayout(self.horizontalLayout)
+
+        # Сигнал нажатия кнопки удаления к методу
+        self.delet_button.clicked.connect(self.request_delete)
+
+    def request_delete(self):
+        self.delete_requested.emit(self.row)  # сигнал с номером строки
 
 class Ui_CreateEditAnime_form(object):
     def setupUi(self, CreateEditAnime_form):
