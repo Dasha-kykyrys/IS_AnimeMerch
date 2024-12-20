@@ -4,6 +4,8 @@ from PyQt5.QtGui import QStandardItemModel
 import sys
 from GUI import Ui_MainWindow, Ui_CreateEditAnime_form, Ui_CreateEditProduct_form, Ui_preview_form, ItemDelegateData, ItemDelegateCheck
 from database import load_data_from_db, add_to_database_product,  add_to_database_anime, delete_anime_by_name, delete_product
+import re
+
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
@@ -105,39 +107,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 item_delegate = ItemDelegateData(item.text(), row)  # Создаем экземпляр ItemDelegateData
                 table.setIndexWidget(model.index(row, number), item_delegate)  # Устанавливаем делегат в таблицу
 
-                # Подключаем сигнал нажатия кнопки удаления к обработчику
-                item_delegate.delete_requested.connect(lambda r=row: self.handle_delete_request(row))
-
-    def handle_delete_request(self, row):
-        current_model = self.ui_main_window.management_table.model()
-        if current_model == self.product_model:
-            is_product = True
-        else:
-            is_product = False
-
-        if is_product:
-            # Получаем данные о продукте из модели на основе номера строки
-            product_name = self.product_model.item(row, 1).text()
-            anime_name = self.product_model.item(row, 2).text()
-            product_price = self.product_model.item(row, 3).text()
-            product_count = self.product_model.item(row, 4).text()
-
-            delete_product(product_name, anime_name, product_price, product_count)
-            load_data_from_db(self.product_model, 'product_table')  # Перезагружаем данные о продуктах
-            self.add_delegate_managment(self.product_model, self.ui_main_window.management_table, 5)
-
-        else:
-            # Удаляем аниме
-            anime_name = self.anime_model.item(row, 1).text()
-            delete_anime_by_name(anime_name)  # Удаляем аниме по имени
-            load_data_from_db(self.anime_model, 'anime_table')  # Перезагружаем данные об аниме
-
-            # Обновляем таблицу аниме
-            self.add_delegate_managment(self.anime_model, self.ui_main_window.management_table, 2)
-
-        # Добавьте отладочную информацию, если требуется
-        print("Удаление выполнено для строки:", row, "Тип:", "Продукт" if is_product else "Аниме")
-
 
 class CreateEditProduct(QtWidgets.QWidget):
     def __init__(self, main_window, product_model, add_delegate):
@@ -159,14 +128,26 @@ class CreateEditProduct(QtWidgets.QWidget):
         price = self.ui_create_edit_product.price_textedit.toPlainText().strip()  # Цена
         count = self.ui_create_edit_product.count_textedit.toPlainText().strip()  # Количество
 
-        if not price.replace('.', '', 1).isdigit() or not count.isdigit() or not add_to_database_product(name, anime, price, count):
+        def is_valid_input(value):
+            # Проверка, что строка состоит только из букв и цифр
+            return bool(re.match(r'^[\w\s]+$', value))  # \w соответствует буквам и цифрам, \s соответствует пробелам
+
+        def is_valid_number(number):
+            # Проверка, что count состоит только из цифр
+            return number.isdigit()
+
+        # Проверка входных данных
+        if not is_valid_input(name) or not is_valid_input(anime) or not is_valid_number(price) or not is_valid_number(
+                count) or not add_to_database_product(name, anime, price, count):
             # Очистка полей и уведомление пользователя об ошибке
-            if not price.replace('.', '', 1).isdigit():
+            if not is_valid_number(price):
                 self.ui_create_edit_product.price_textedit.clear()  # Очистка поля цены
-            if not count.isdigit():
+            if not is_valid_number(count):
                 self.ui_create_edit_product.count_textedit.clear()  # Очистка поля количества
-            if not add_to_database_product(name, anime, price, count):
+            if not is_valid_input(anime):
                 self.ui_create_edit_product.anime_textedit.clear()  # Очистка поля аниме
+            if not add_to_database_product(name, anime, price, count):
+                self.ui_create_edit_product.anime_textedit.clear()
             return
 
         # Очистка полей
@@ -201,8 +182,19 @@ class CreateEditAnime(QtWidgets.QWidget):
         self.ui_create_edit_anime.ok_button.clicked.connect(self.save_anime)
         self.ui_create_edit_anime.cancel_button.clicked.connect(self.close_create_edit_anime)
 
+
+
     def save_anime(self):
         name = self.ui_create_edit_anime.name_textedit.toPlainText().strip()  # Наименование
+
+        def is_valid_input(value):
+            # Проверка, что строка состоит только из букв и цифр
+            return bool(re.match(r'^[\w\s]+$', value))  # \w соответствует буквам и цифрам, \s соответствует пробелам
+
+        # Проверка входных данных
+        if not is_valid_input(name) :
+            self.ui_create_edit_anime.name_textedit.clear()
+            return
 
         add_to_database_anime(name)
 

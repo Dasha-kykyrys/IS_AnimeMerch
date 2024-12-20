@@ -188,3 +188,37 @@ def delete_product(name, anime, price, count):
 
     cursor.close()
     conn.close()
+
+def update_product(current_name, current_anime, current_price, current_count, new_name, new_anime, new_price, new_count):
+    cursor, conn = connect_db()
+
+    # Получаем id аниме по имени
+    cursor.execute("SELECT id_anime FROM anime WHERE a_name = %s;", (current_anime,))
+    anime_id = cursor.fetchone()
+    if anime_id:
+        anime_id = anime_id[0]
+
+        # Обновляем запись в таблице продуктов
+        cursor.execute("""
+            UPDATE product 
+            SET p_name = %s, p_anime = %s, p_price = %s, p_count = %s 
+            WHERE p_name = %s AND p_anime = %s AND p_price = %s AND p_count = %s
+        """, (new_name, anime_id, new_price, new_count, current_name, anime_id, current_price, current_count))
+        conn.commit()
+
+    cursor.close()
+    conn.close()
+
+def update_anime(current_name, new_name):
+    cursor, conn = connect_db()
+
+    # Обновляем запись в таблице аниме
+    cursor.execute("""
+        UPDATE anime 
+        SET a_name = %s 
+        WHERE a_name = %s
+    """, (new_name, current_name))
+    conn.commit()
+
+    cursor.close()
+    conn.close()

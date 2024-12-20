@@ -850,8 +850,6 @@ class ItemDelegateCheck(QWidget):
         self.setLayout(self.horizontalLayout)
 
 class ItemDelegateData(QWidget):
-    delete_requested = QtCore.pyqtSignal(int)  # Сигнал для запроса удаления
-
     def __init__(self, text, row, parent=None):
         super(ItemDelegateData, self).__init__(parent)
 
@@ -891,11 +889,6 @@ class ItemDelegateData(QWidget):
         # Установка компоновки для виджета
         self.setLayout(self.horizontalLayout)
 
-        # Сигнал нажатия кнопки удаления к методу
-        self.delet_button.clicked.connect(self.request_delete)
-
-    def request_delete(self):
-        self.delete_requested.emit(self.row)  # сигнал с номером строки
 
 class Ui_CreateEditAnime_form(object):
     def setupUi(self, CreateEditAnime_form):
