@@ -849,18 +849,27 @@ class ItemDelegateCheck(QWidget):
         # Установка компоновки для виджета
         self.setLayout(self.horizontalLayout)
 
+class RowButton(QtWidgets.QPushButton):
+    def __init__(self, row_number, *args, **kwargs):
+        super(RowButton, self).__init__(*args, **kwargs)
+        self.row_number = row_number
+
+    def get_row_number(self):
+        return self.row_number
+
 class ItemDelegateData(QWidget):
-    def __init__(self, text, row, parent=None):
+    button_clicked = QtCore.pyqtSignal(str, int)  # Создаем сигнал для передачи типа кнопки и номера строки
+
+    def __init__(self, row_number, parent=None):
         super(ItemDelegateData, self).__init__(parent)
 
-        self.row = row  # Номер строки
         self.horizontalLayoutWidget = QtWidgets.QWidget(self)
         self.horizontalLayoutWidget.setObjectName("horizontalLayoutWidget")
         self.horizontalLayout = QtWidgets.QHBoxLayout(self.horizontalLayoutWidget)
         self.horizontalLayout.setContentsMargins(20, 0, 20, 0)
         self.horizontalLayout.setObjectName("horizontalLayout")
 
-        self.edit_button = QtWidgets.QPushButton(self.horizontalLayoutWidget)
+        self.edit_button = RowButton(row_number, self.horizontalLayoutWidget)
         self.edit_button.setMinimumSize(QtCore.QSize(32, 32))
         self.edit_button.setMaximumSize(QtCore.QSize(32, 32))
         self.edit_button.setStyleSheet("QPushButton{\n"
@@ -871,9 +880,10 @@ class ItemDelegateData(QWidget):
                                         "}\n"
                                         )
         self.edit_button.setObjectName("edit_button")
+        self.edit_button.clicked.connect(lambda: self.on_button_clicked("edit", row_number))  # Передаем тип кнопки
         self.horizontalLayout.addWidget(self.edit_button)
 
-        self.delet_button = QtWidgets.QPushButton(self.horizontalLayoutWidget)
+        self.delet_button = RowButton(row_number, self.horizontalLayoutWidget)
         self.delet_button.setMinimumSize(QtCore.QSize(32, 32))
         self.delet_button.setMaximumSize(QtCore.QSize(32, 32))
         self.delet_button.setStyleSheet("QPushButton{\n"
@@ -884,11 +894,14 @@ class ItemDelegateData(QWidget):
                                          "}\n"
                                         )
         self.delet_button.setObjectName("delet_button")
+        self.delet_button.clicked.connect(lambda: self.on_button_clicked("delete", row_number))  # Передаем тип кнопки
         self.horizontalLayout.addWidget(self.delet_button)
 
         # Установка компоновки для виджета
         self.setLayout(self.horizontalLayout)
 
+    def on_button_clicked(self, button_type, row_number):
+        self.button_clicked.emit(button_type, row_number)
 
 class Ui_CreateEditAnime_form(object):
     def setupUi(self, CreateEditAnime_form):

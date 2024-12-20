@@ -50,7 +50,7 @@
     "Python.TestPrint.executor": "Run",
     "Python.database.executor": "Run",
     "Python.index.executor": "Run",
-    "Python.main.executor": "Run",
+    "Python.main.executor": "Debug",
     "Python.sales.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "master",

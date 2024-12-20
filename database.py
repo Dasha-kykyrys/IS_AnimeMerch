@@ -107,7 +107,7 @@ def load_data_from_db(model, name_table):
                 QStandardItem(str(index + 1)),  # Номер
                 QStandardItem(row[0]),  # Наименование продукта
                 QStandardItem(row[1]),  # Наименование аниме
-                QStandardItem(f"{row[2]:.2f}"),  # Цена
+                QStandardItem(str(row[2])),  # Цена
                 QStandardItem(str(row[3]))  # Количество
             ])
 
@@ -190,24 +190,38 @@ def delete_product(name, anime, price, count):
     conn.close()
 
 def update_product(current_name, current_anime, current_price, current_count, new_name, new_anime, new_price, new_count):
-    cursor, conn = connect_db()
+    if current_name and current_anime and current_price and current_count and new_name and new_anime and new_price and new_count:
+        cursor, conn = connect_db()
 
-    # Получаем id аниме по имени
-    cursor.execute("SELECT id_anime FROM anime WHERE a_name = %s;", (current_anime,))
-    anime_id = cursor.fetchone()
-    if anime_id:
-        anime_id = anime_id[0]
+        # Получаем id аниме по имени
+        cursor.execute("SELECT id_anime FROM anime WHERE a_name = %s;", (current_anime,))
+        anime_id = cursor.fetchone()
 
-        # Обновляем запись в таблице продуктов
-        cursor.execute("""
-            UPDATE product 
-            SET p_name = %s, p_anime = %s, p_price = %s, p_count = %s 
-            WHERE p_name = %s AND p_anime = %s AND p_price = %s AND p_count = %s
-        """, (new_name, anime_id, new_price, new_count, current_name, anime_id, current_price, current_count))
-        conn.commit()
+        # Получаем id аниме по имени
+        cursor.execute("SELECT id_anime FROM anime WHERE a_name = %s;", (new_anime,))
+        new_anime_id = cursor.fetchone()
 
-    cursor.close()
-    conn.close()
+        if new_anime_id is None:  # Если аниме не найдено
+            cursor.close()
+            conn.close()
+            return False
+
+        if anime_id and new_anime_id:
+            anime_id = anime_id[0]
+            new_anime_id = new_anime_id[0]
+
+            # Обновляем запись в таблице продуктов
+            cursor.execute("""
+                UPDATE product 
+                SET p_name = %s, p_anime = %s, p_price = %s, p_count = %s 
+                WHERE p_name = %s AND p_anime = %s AND p_price = %s AND p_count = %s
+            """, (new_name, anime_id, new_price, new_count, current_name, new_anime_id, current_price, current_count))
+            conn.commit()
+
+        cursor.close()
+        conn.close()
+
+        return True
 
 def update_anime(current_name, new_name):
     cursor, conn = connect_db()
