@@ -109,7 +109,11 @@ class MainWindow(QtWidgets.QMainWindow):
                 item_delegate.delete_requested.connect(lambda r=row: self.handle_delete_request(row))
 
     def handle_delete_request(self, row):
-        is_product = not self.ui_main_window.productstable_button.isChecked()  # Проверяем состояние кнопки в момент вызова
+        current_model = self.ui_main_window.management_table.model()
+        if current_model == self.product_model:
+            is_product = True
+        else:
+            is_product = False
 
         if is_product:
             # Получаем данные о продукте из модели на основе номера строки
@@ -119,14 +123,20 @@ class MainWindow(QtWidgets.QMainWindow):
             product_count = self.product_model.item(row, 4).text()
 
             delete_product(product_name, anime_name, product_price, product_count)
-            load_data_from_db(self.product_model, 'product_table')
+            load_data_from_db(self.product_model, 'product_table')  # Перезагружаем данные о продуктах
             self.add_delegate_managment(self.product_model, self.ui_main_window.management_table, 5)
 
         else:
+            # Удаляем аниме
             anime_name = self.anime_model.item(row, 1).text()
-            delete_anime_by_name(anime_name)
-            load_data_from_db(self.anime_model, 'anime_table')
+            delete_anime_by_name(anime_name)  # Удаляем аниме по имени
+            load_data_from_db(self.anime_model, 'anime_table')  # Перезагружаем данные об аниме
+
+            # Обновляем таблицу аниме
             self.add_delegate_managment(self.anime_model, self.ui_main_window.management_table, 2)
+
+        # Добавьте отладочную информацию, если требуется
+        print("Удаление выполнено для строки:", row, "Тип:", "Продукт" if is_product else "Аниме")
 
 
 class CreateEditProduct(QtWidgets.QWidget):
