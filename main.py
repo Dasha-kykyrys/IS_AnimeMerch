@@ -4,7 +4,7 @@ from PyQt5.QtGui import QStandardItemModel
 import sys
 from GUI import Ui_MainWindow, Ui_CreateEditAnime_form, Ui_CreateEditProduct_form, Ui_preview_form, ItemDelegateData, ItemDelegateCheck
 from database import load_data_from_db, add_to_database_product, add_to_database_anime, delete_anime_by_name, \
-    delete_product, update_anime, update_product
+    delete_product, update_anime, update_product, save_database
 import re
 
 
@@ -117,9 +117,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def open_create(self):
         if self.ui_main_window.productstable_button.isEnabled(): # Если активна кнопка "Товары", то открыта таблица Аниме
+            self.create_edit_anime.ui_create_edit_anime.name_textedit.clear()
             self.create_edit_anime.setWindowModality(Qt.ApplicationModal)
             self.create_edit_anime.show()
         else:
+            self.create_edit_product.clear_text()
             self.create_edit_product.setWindowModality(Qt.ApplicationModal)
             self.create_edit_product.show()
 
@@ -206,6 +208,9 @@ class MainWindow(QtWidgets.QMainWindow):
                     ['№', 'Наименование', 'Аниме', 'Цена', 'Кол-во', 'Действие'])
                 self.add_delegate_managment(self.product_model, self.ui_main_window.management_table, 5)
 
+    def closeEvent(self, event):
+        save_database()
+        event.accept()
 
 class CreateEditProduct(QtWidgets.QWidget):
     def __init__(self, main_window, product_model, add_delegate):

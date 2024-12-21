@@ -26,15 +26,15 @@ def restore_database(user, password, dbname, host, port):
         text=True
     )
 
-def save_database(user, password, dbname, host, port):
+def save_database():
     pg_dump_path = r'C:\Program Files\PostgreSQL\17\bin\pg_dump.exe'  # Замените на ваш путь
     backup_file_path = 'anime_merch.sql'
-    os.environ['PGPASSWORD'] = password
+    os.environ['PGPASSWORD'] = info_password
 
     # Команда для создания бэкапа в формате SQL
 
     result = subprocess.run(
-        [pg_dump_path, '-U', user, '-h', host, '-p', port, '-f', backup_file_path, dbname],
+        [pg_dump_path, '-U', info_user, '-h', info_host, '-p', info_port, '-f', backup_file_path, info_dbname],
         check=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
