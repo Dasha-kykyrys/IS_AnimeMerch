@@ -340,7 +340,7 @@ class Ui_MainWindow(object):
             self.add_button.setObjectName("add_button")
             self.filling_layout.addWidget(self.add_button)
             self.remove_button = QtWidgets.QPushButton(self.centralwidget)
-            self.remove_button.setEnabled(False)
+
             sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
             sizePolicy.setHorizontalStretch(0)
             sizePolicy.setVerticalStretch(0)

@@ -57,6 +57,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Подключение обработчика кнопки добавления
         self.ui_main_window.add_button.clicked.connect(self.add_item_to_check)
+        self.ui_main_window.remove_button.clicked.connect(self.remove_item_from_check)
 
     def add_item_to_check(self):
         # Получаем выделенные индексы в таблице каталога
@@ -75,11 +76,6 @@ class MainWindow(QtWidgets.QMainWindow):
         item_price = self.catalog_model.item(selected_row, 3).text()  # Цена
         item_quantity = int(self.catalog_model.item(selected_row, 4).text())  # Кол-во
 
-        # Проверяем, достаточно ли товара для добавления
-        if item_quantity <= 0:
-            QtWidgets.QMessageBox.warning(self, "Ошибка", "Недостаточно товара для добавления в чек!")
-            return
-
         # Уменьшаем количество в каталоге
         new_quantity = item_quantity - 1  # Уменьшаем на 1 для добавления в чек
         self.catalog_model.setItem(selected_row, 4, QStandardItem(str(new_quantity)))  # Обновляем количество
@@ -95,6 +91,33 @@ class MainWindow(QtWidgets.QMainWindow):
         # Удаляем строку из каталога
         self.catalog_model.removeRow(selected_row)
 
+    def remove_item_from_check(self):
+        # Получаем выделенные индексы в таблице чека
+        selected_indexes = self.ui_main_window.chek_table.selectedIndexes()
+
+        if not selected_indexes:
+            return  # Если ничего не выбрано, выходим
+
+        # Получаем индекс строки, выбранной пользователем
+        selected_row = selected_indexes[0].row()
+
+        # Получаем данные из выбранной строки
+        item_number = self.check_model.item(selected_row, 0).text()  # №
+        item_name = self.check_model.item(selected_row, 1).text()    # Наименование
+        item_anime = self.check_model.item(selected_row, 2).text()   # Аниме
+        item_quantity = 1  # Кол-во, которое мы возвращаем
+
+        # Добавляем элемент обратно в каталог
+        new_row = self.catalog_model.rowCount()
+        self.catalog_model.insertRow(new_row)
+        self.catalog_model.setItem(new_row, 0, QStandardItem(item_number))  # №
+        self.catalog_model.setItem(new_row, 1, QStandardItem(item_name))    # Наименование
+        self.catalog_model.setItem(new_row, 2, QStandardItem(item_anime))   # Аниме
+        self.catalog_model.setItem(new_row, 3, QStandardItem("0"))           # Цена, устанавливаем 0 (или вы можете изменить это)
+        self.catalog_model.setItem(new_row, 4, QStandardItem("0"))  # Увеличиваем количество на 1
+
+        # Удаляем строку из чека
+        self.check_model.removeRow(selected_row)
 
     def update_create_edit_anime(self, press_edit, current_name):
         self.create_edit_anime.press_edit = press_edit
@@ -112,6 +135,17 @@ class MainWindow(QtWidgets.QMainWindow):
             self.ui_main_window.catalog_button.setEnabled(False)
             self.ui_main_window.sales_button.setEnabled(True)
             self.ui_main_window.management_button.setEnabled(True)
+
+            load_data_from_db(self.catalog_model, 'product_table')
+            self.catalog_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Цена', 'Кол-во'])
+            self.ui_main_window.catalog_table.setModel(self.catalog_model)
+            for column in range(self.catalog_model.columnCount()):  # Адаптирующиеся под данные столбцы
+                self.ui_main_window.catalog_table.resizeColumnToContents(column)
+            self.check_model.clear()
+            self.check_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Кол-во'])
+            self.ui_main_window.chek_table.setModel(self.check_model)
+            for column in range(self.check_model.columnCount()):  # Адаптирующиеся под данные столбцы
+                self.ui_main_window.chek_table.resizeColumnToContents(column)
 
         if index == 1: # Открытие Продажи
             self.ui_main_window.catalog_button.setEnabled(True)
