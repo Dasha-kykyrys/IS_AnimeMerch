@@ -1,6 +1,6 @@
 ﻿from PyQt5 import QtWidgets
 from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QStandardItemModel
+from PyQt5.QtGui import QStandardItemModel, QStandardItem
 import sys
 from GUI import Ui_MainWindow, Ui_CreateEditAnime_form, Ui_CreateEditProduct_form, Ui_preview_form, ItemDelegateData, ItemDelegateCheck
 from database import load_data_from_db, add_to_database_product, add_to_database_anime, delete_anime_by_name, \
@@ -54,6 +54,47 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.create_edit_product = CreateEditProduct( self.ui_main_window, self.product_model,self.add_delegate_managment)
         self.create_edit_anime = CreateEditAnime(self.ui_main_window, self.anime_model, self.add_delegate_managment)
+
+        # Подключение обработчика кнопки добавления
+        self.ui_main_window.add_button.clicked.connect(self.add_item_to_check)
+
+    def add_item_to_check(self):
+        # Получаем выделенные индексы в таблице каталога
+        selected_indexes = self.ui_main_window.catalog_table.selectedIndexes()
+
+        if not selected_indexes:
+            return  # Если ничего не выбрано, выходим
+
+        # Получаем индекс строки, выбранной пользователем
+        selected_row = selected_indexes[0].row()
+
+        # Получаем данные из выбранной строки
+        item_number = self.catalog_model.item(selected_row, 0).text()  # №
+        item_name = self.catalog_model.item(selected_row, 1).text()  # Наименование
+        item_anime = self.catalog_model.item(selected_row, 2).text()  # Аниме
+        item_price = self.catalog_model.item(selected_row, 3).text()  # Цена
+        item_quantity = int(self.catalog_model.item(selected_row, 4).text())  # Кол-во
+
+        # Проверяем, достаточно ли товара для добавления
+        if item_quantity <= 0:
+            QtWidgets.QMessageBox.warning(self, "Ошибка", "Недостаточно товара для добавления в чек!")
+            return
+
+        # Уменьшаем количество в каталоге
+        new_quantity = item_quantity - 1  # Уменьшаем на 1 для добавления в чек
+        self.catalog_model.setItem(selected_row, 4, QStandardItem(str(new_quantity)))  # Обновляем количество
+
+        # Добавляем элемент в чек
+        new_row = self.check_model.rowCount()
+        self.check_model.insertRow(new_row)
+        self.check_model.setItem(new_row, 0, QStandardItem(item_number))  # №
+        self.check_model.setItem(new_row, 1, QStandardItem(item_name))  # Наименование
+        self.check_model.setItem(new_row, 2, QStandardItem(item_anime))  # Аниме
+        self.check_model.setItem(new_row, 3, QStandardItem("1"))  # Кол-во, добавляем 1
+
+        # Удаляем строку из каталога
+        self.catalog_model.removeRow(selected_row)
+
 
     def update_create_edit_anime(self, press_edit, current_name):
         self.create_edit_anime.press_edit = press_edit
