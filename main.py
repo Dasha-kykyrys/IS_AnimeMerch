@@ -58,9 +58,17 @@ class MainWindow(QtWidgets.QMainWindow):
         # Словарь для хранения информации о ценах и количестве
         self.item_info = {}
 
-        # Подключение обработчика кнопки добавления
         self.ui_main_window.add_button.clicked.connect(self.add_item_to_check)
         self.ui_main_window.remove_button.clicked.connect(self.remove_item_from_check)
+
+    def add_delegate_check(self):
+        for row in range(self.check_model.rowCount()):
+            item = self.check_model.item(row, 1)
+
+            if item is not None:
+                item_delegate = ItemDelegateCheck()
+                self.ui_main_window.chek_table.setIndexWidget(self.check_model.index(row, 3),
+                                     item_delegate)  # Установка кнопок увелечения и уменьшения кол-во товаров в таблицу
 
     def add_item_to_check(self):
         # Получение индексы строки в таблице каталога
@@ -79,7 +87,7 @@ class MainWindow(QtWidgets.QMainWindow):
         item_price = self.catalog_model.item(selected_row, 3).text()  # Цена
         item_quantity = self.catalog_model.item(selected_row, 4).text()  # Кол-во
 
-        # Сохраняем информацию о цене и количестве товара в словарь
+        # Сохранение информации о цене и количестве товара в словарь
         self.item_info[item_number] = {
             'name': item_name,
             'anime': item_anime,
@@ -87,23 +95,25 @@ class MainWindow(QtWidgets.QMainWindow):
             'quantity': item_quantity
         }
 
-        # Добавляем элемент в чек
+        # Добавление элемента в чек
         new_row = self.check_model.rowCount()
         self.check_model.insertRow(new_row)
         self.check_model.setItem(new_row, 0, QStandardItem(item_number))  # №
         self.check_model.setItem(new_row, 1, QStandardItem(item_name))  # Наименование
         self.check_model.setItem(new_row, 2, QStandardItem(item_anime))  # Аниме
-        self.check_model.setItem(new_row, 3, QStandardItem("1"))  # Кол-во, добавляем 1
 
-        # Удаляем строку из каталога
+        # Удаление строки из каталога
         self.catalog_model.removeRow(selected_row)
+
+        self.add_delegate_check()
+
 
     def remove_item_from_check(self):
         # Получаем выделенные индексы в таблице чека
         selected_indexes = self.ui_main_window.chek_table.selectedIndexes()
 
         if not selected_indexes:
-            return  # Если ничего не выбрано, выходим
+            return  # Если ничего не выбрано
 
         # Получение индекса строки, выбранной пользователем
         selected_row = selected_indexes[0].row()
@@ -111,10 +121,10 @@ class MainWindow(QtWidgets.QMainWindow):
         # Получение данных из выбранной строки
         item_number = self.check_model.item(selected_row, 0).text()  # №
 
-        # Извлекаем сохраненную информацию о товаре
+        # Извлечение сохраненную информацию о товаре
         item_info = self.item_info.get(item_number)
         if item_info is None:
-            return  # Если информация не найдена, выходим
+            return  # Если информация не найдена
 
         item_name = item_info['name']
         item_anime = item_info['anime']
@@ -127,13 +137,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.catalog_model.setItem(new_row, 0, QStandardItem(item_number))  # №
         self.catalog_model.setItem(new_row, 1, QStandardItem(item_name))  # Наименование
         self.catalog_model.setItem(new_row, 2, QStandardItem(item_anime))  # Аниме
-        self.catalog_model.setItem(new_row, 3, QStandardItem(str(item_price)))  # Устанавливаем цену
-        self.catalog_model.setItem(new_row, 4, QStandardItem(str(item_quantity)))  # Увеличиваем количество на 1
+        self.catalog_model.setItem(new_row, 3, QStandardItem(item_price))  # Цену
+        self.catalog_model.setItem(new_row, 4, QStandardItem(item_quantity))  # Кол-во
 
-        # Удаляем строку из чека
+        # Удаление строки из чека
         self.check_model.removeRow(selected_row)
 
-        # Удаляем информацию о товаре из словаря
+        # Удаление информации о товаре из словаря
         del self.item_info[item_number]
 
     def update_create_edit_anime(self, press_edit, current_name):

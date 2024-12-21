@@ -791,7 +791,7 @@ class Ui_MainWindow(object):
             return page
 
 class ItemDelegateCheck(QWidget):
-    def __init__(self, text, parent=None):
+    def __init__(self, parent=None):
         super(ItemDelegateCheck, self).__init__(parent)
 
         self.horizontalLayoutWidget = QtWidgets.QWidget(self)
