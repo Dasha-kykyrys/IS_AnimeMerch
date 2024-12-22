@@ -2,10 +2,19 @@
 from PyQt5.QtCore import Qt, QSortFilterProxyModel, QRegExp
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 import sys
+
+from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from docx.oxml import OxmlElement
+from docx.shared import Inches
+
 from GUI import Ui_MainWindow, Ui_CreateEditAnime_form, Ui_CreateEditProduct_form, Ui_preview_form, ItemDelegateData, ItemDelegateCheck
 from database import load_data_from_db, add_to_database_product, add_to_database_anime, delete_anime_by_name, \
     delete_product, update_anime, update_product, save_database
 import re
+from docx import Document
+from datetime import datetime
+import os
+
 
 class CustomFilterProxyModel(QSortFilterProxyModel):
     def filterAcceptsRow(self, sourceRow, sourceParent):
@@ -85,8 +94,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui_main_window.add_button.clicked.connect(self.add_item_to_check)
         self.ui_main_window.remove_button.clicked.connect(self.remove_item_from_check)
 
+        self.ui_main_window.confirm_button.clicked.connect(self.save_check_to_docx)
+
     def on_search_clicked(self):
-        # Получаем текст из поля поиска
+        # текст из поля поиска
         text = self.ui_main_window.search_field.toPlainText()
         self.proxy_model.setFilterRegExp(QRegExp(text, Qt.CaseInsensitive, QRegExp.RegExp))
 
@@ -139,6 +150,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.add_delegate_check()  # Добавление кнопок увеличения и уменьшения кол-ва товаров в таблицу
 
+        self.ui_main_window.catalog_table.clearSelection()
+        self.ui_main_window.confirm_button.setEnabled(True)
+
     def remove_item_from_check(self):
         # Получаем выделенные индексы в таблице чека
         selected_indexes = self.ui_main_window.chek_table.selectedIndexes()
@@ -176,9 +190,93 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Удаление информации о товаре из словаря
         del self.item_info[item_number]
+        if not self.item_info:
+            self.ui_main_window.confirm_button.setEnabled(False)
 
         # Очистка выделения в таблице чека
         self.ui_main_window.chek_table.clearSelection()
+
+    def save_check_to_docx(self):
+        # Создание нового документа
+        doc = Document()
+
+        # Заголовок
+        heading = doc.add_heading('Чек', level=1)
+        heading.alignment = 1  # Центрируем заголовок
+
+        # Дата покупки
+        purchase_date = datetime.now().strftime("%Y-%m-%d %H-%M-%S")
+        doc.add_paragraph(f'Покупка совершена {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}.')
+
+        # Общая сумма
+        total_sum = 0
+
+        # Заголовки таблицы
+        table = doc.add_table(rows=1, cols=4)
+        hdr_cells = table.rows[0].cells
+        hdr_cells[0].text = 'Наименование товара'
+        hdr_cells[1].text = 'Количество'
+        hdr_cells[2].text = 'Цена за единицу'
+        hdr_cells[3].text = 'Общая сумма'
+
+        # Установка стиля таблицы
+        table.style = 'Table Grid'  # Добавляет линии к таблице
+
+        # Перенос данных из таблицы чека
+        for row in range(self.check_model.rowCount()):
+            item_number = self.check_model.item(row, 0).text()  # Получение номера товара
+            item_info = self.item_info.get(item_number)
+
+            if item_info is None:
+                continue  # Если информация о товаре не найден
+
+            item_name = item_info['name']  # Наименование
+            item_delegate = self.ui_main_window.chek_table.indexWidget(self.check_model.index(row, 3))
+            item_quantity = item_delegate.get_count()  #  количество
+            item_price = float(item_info['price'])  # Цена из словаря
+            item_total = item_quantity * item_price  # Общая сумма для товара
+            total_sum += item_total
+
+            row_cells = table.add_row().cells
+            row_cells[0].text = item_name
+            row_cells[1].text = str(item_quantity)
+            row_cells[2].text = str(item_price)
+            row_cells[3].text = str(item_total)
+
+        # Добавление итоговой суммы в таблицу
+        total_row_cells = table.add_row().cells
+        total_row_cells[0].text = 'Итого'
+        total_row_cells[1].text = ''
+        total_row_cells[2].text = ''
+        total_row_cells[3].text = str(total_sum)
+
+        # Сохранение документа в папку «Чеки»
+        check_folder = 'Чеки'
+        os.makedirs(check_folder, exist_ok=True)  # Создание папки, если она не существует
+        docx_file_path = os.path.join(check_folder, f'чек_{purchase_date}.docx')
+        doc.save(docx_file_path)
+
+        # Конвертация в PDF
+        from docx2pdf import convert
+        pdf_file_path = os.path.join(check_folder, f'чек_{purchase_date}.pdf')
+        convert(docx_file_path, pdf_file_path)
+
+        # Удаление .docx файла после конвертации
+        os.remove(docx_file_path)
+
+        load_data_from_db(self.catalog_model, 'product_table')
+        self.catalog_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Цена', 'Кол-во'])
+
+        self.proxy_model.setSourceModel(self.catalog_model)
+        self.ui_main_window.catalog_table.setModel(self.proxy_model)
+        for column in range(self.catalog_model.columnCount()):  # Адаптирующиеся под данные столбцы
+            self.ui_main_window.catalog_table.resizeColumnToContents(column)
+
+        self.check_model.clear()
+        self.check_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Кол-во'])
+        self.ui_main_window.chek_table.setModel(self.check_model)
+        for column in range(self.check_model.columnCount()):  # Адаптирующиеся под данные столбцы
+            self.ui_main_window.chek_table.resizeColumnToContents(column)
 
     def update_create_edit_anime(self, press_edit, current_name):
         self.create_edit_anime.press_edit = press_edit
@@ -196,6 +294,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.ui_main_window.catalog_button.setEnabled(False)
             self.ui_main_window.sales_button.setEnabled(True)
             self.ui_main_window.management_button.setEnabled(True)
+            self.ui_main_window.confirm_button.setEnabled(False)
 
             load_data_from_db(self.catalog_model, 'product_table')
             self.catalog_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Цена', 'Кол-во'])

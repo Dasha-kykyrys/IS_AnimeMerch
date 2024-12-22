@@ -863,6 +863,9 @@ class ItemDelegateCheck(QWidget):
             count -= 1
             self.count_label.setText(str(count))
 
+    def get_count(self):
+        return int(self.count_label.text())
+
 class RowButton(QtWidgets.QPushButton):
     def __init__(self, row_number, *args, **kwargs):
         super(RowButton, self).__init__(*args, **kwargs)

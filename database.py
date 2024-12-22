@@ -129,10 +129,8 @@ def add_to_database_product(name, anime, price, count):
 
         # Извлекаем ID из кортежа
         anime_id = anime_id[0]
-
-        # Приводим price и count к нужным типам данных, если это необходимо
-        price = float(price)  # Убедитесь, что цена - это число
-        count = int(count)    # Убедитесь, что количество - это целое число
+        price = int(price)
+        count = int(count)
 
         # SQL-запрос для вставки данных
         cursor.execute("""
