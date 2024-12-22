@@ -171,6 +171,7 @@ COPY public.product (id_product, p_name, p_anime, p_price, p_count) FROM stdin;
 10	Значок 56мм	45	60	100
 11	Значок 56мм	41	65	50
 12	Значок 36мм	54	40	30
+13	Плакат А5	54	90	10
 \.
 
 
@@ -193,7 +194,7 @@ SELECT pg_catalog.setval('public.anime_id_anime_seq', 54, true);
 -- Name: product_id_product_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.product_id_product_seq', 12, true);
+SELECT pg_catalog.setval('public.product_id_product_seq', 13, true);
 
 
 --

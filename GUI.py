@@ -9,8 +9,8 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets, QtWebEngineWidgets
+from PyQt5.QtCore import QSortFilterProxyModel
 from PyQt5.QtWidgets import QStackedWidget, QWidget
-
 
 
 class Ui_MainWindow(object):
@@ -189,30 +189,31 @@ class Ui_MainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
     def catalog_page(self):
-            page = QWidget()
-            self.work_area_layout = QtWidgets.QHBoxLayout()
-            self.work_area_layout.setContentsMargins(30, -1, 30, -1)
-            self.work_area_layout.setSpacing(7)
-            self.work_area_layout.setObjectName("work_area_layout")
+        page = QWidget()
+        self.work_area_layout = QtWidgets.QHBoxLayout()
+        self.work_area_layout.setContentsMargins(30, -1, 30, -1)
+        self.work_area_layout.setSpacing(7)
+        self.work_area_layout.setObjectName("work_area_layout")
 
-            # таблица каталога и поиск
-            self.catalog_layout = QtWidgets.QVBoxLayout()
-            self.catalog_layout.setContentsMargins(-1, 12, -1, 12)
-            self.catalog_layout.setSpacing(23)
-            self.catalog_layout.setObjectName("catalog_layout")
-            self.catalog_label = QtWidgets.QLabel(self.centralwidget)
-            self.catalog_label.setMinimumSize(QtCore.QSize(101, 31))
-            font = QtGui.QFont()
-            font.setFamily("Times New Roman")
-            font.setPointSize(16)
-            font.setBold(True)
-            font.setWeight(75)
-            self.catalog_label.setFont(font)
-            self.catalog_label.setStyleSheet("color: #6E491E;")
-            self.catalog_label.setObjectName("catalog_label")
-            self.catalog_layout.addWidget(self.catalog_label)
-            self.catalog_table = QtWidgets.QTableView(self.centralwidget)
-            self.catalog_table.setStyleSheet("QTableView {\n"
+        # таблица каталога и поиск
+        self.catalog_layout = QtWidgets.QVBoxLayout()
+        self.catalog_layout.setContentsMargins(-1, 12, -1, 12)
+        self.catalog_layout.setSpacing(23)
+        self.catalog_layout.setObjectName("catalog_layout")
+
+        self.catalog_label = QtWidgets.QLabel(self.centralwidget)
+        self.catalog_label.setMinimumSize(QtCore.QSize(101, 31))
+        font = QtGui.QFont()
+        font.setFamily("Times New Roman")
+        font.setPointSize(16)
+        font.setBold(True)
+        font.setWeight(75)
+        self.catalog_label.setFont(font)
+        self.catalog_label.setStyleSheet("color: #6E491E;")
+        self.catalog_label.setObjectName("catalog_label")
+        self.catalog_layout.addWidget(self.catalog_label)
+        self.catalog_table = QtWidgets.QTableView(self.centralwidget)
+        self.catalog_table.setStyleSheet("QTableView {\n"
                                              "    border:none;\n"
                                              "    border-top:2px solid #6E491E; \n"
                                              "      border-left: 2px solid #6E491E; \n"
@@ -249,53 +250,53 @@ class Ui_MainWindow(object):
                                              "    subcontrol-position: bottom right; \n"
                                              "}\n"
                                              "")
-            self.catalog_table.setFrameShape(QtWidgets.QFrame.WinPanel)
-            self.catalog_table.setFrameShadow(QtWidgets.QFrame.Plain)
-            self.catalog_table.setLineWidth(0)
-            self.catalog_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-            self.catalog_table.setTabKeyNavigation(False)
-            self.catalog_table.setProperty("showDropIndicator", False)
-            self.catalog_table.setDragDropOverwriteMode(False)
-            self.catalog_table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
-            self.catalog_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-            self.catalog_table.setSortingEnabled(True)
-            self.catalog_table.setObjectName("catalog_table")
-            self.catalog_table.horizontalHeader().setCascadingSectionResizes(False)
-            self.catalog_table.horizontalHeader().setHighlightSections(False)
-            self.catalog_table.horizontalHeader().setSortIndicatorShown(True)
-            self.catalog_table.horizontalHeader().setStretchLastSection(True)
-            self.catalog_table.verticalHeader().setVisible(False)
-            self.catalog_table.verticalHeader().setStretchLastSection(True)
+        self.catalog_table.setFrameShape(QtWidgets.QFrame.WinPanel)
+        self.catalog_table.setFrameShadow(QtWidgets.QFrame.Plain)
+        self.catalog_table.setLineWidth(0)
+        self.catalog_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.catalog_table.setTabKeyNavigation(False)
+        self.catalog_table.setProperty("showDropIndicator", False)
+        self.catalog_table.setDragDropOverwriteMode(False)
+        self.catalog_table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        self.catalog_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.catalog_table.setSortingEnabled(True)
+        self.catalog_table.setObjectName("catalog_table")
+        self.catalog_table.horizontalHeader().setCascadingSectionResizes(False)
+        self.catalog_table.horizontalHeader().setHighlightSections(False)
+        self.catalog_table.horizontalHeader().setSortIndicatorShown(True)
+        self.catalog_table.horizontalHeader().setStretchLastSection(True)
+        self.catalog_table.verticalHeader().setVisible(False)
+        self.catalog_table.verticalHeader().setStretchLastSection(True)
 
-            self.catalog_layout.addWidget(self.catalog_table)
+        self.catalog_layout.addWidget(self.catalog_table)
 
-            self.search_layout = QtWidgets.QHBoxLayout()
-            self.search_layout.setObjectName("search_layout")
-            self.search_field = QtWidgets.QTextEdit(self.centralwidget)
-            self.search_field.setMinimumSize(QtCore.QSize(416, 53))
-            self.search_field.setMaximumSize(QtCore.QSize(16777215, 53))
-            font = QtGui.QFont()
-            font.setFamily("Times New Roman")
-            font.setPointSize(18)
-            font.setBold(False)
-            font.setItalic(False)
-            font.setWeight(50)
-            self.search_field.setFont(font)
-            self.search_field.setStyleSheet("QTextEdit{\n"
+        self.search_layout = QtWidgets.QHBoxLayout()
+        self.search_layout.setObjectName("search_layout")
+        self.search_field = QtWidgets.QTextEdit(self.centralwidget)
+        self.search_field.setMinimumSize(QtCore.QSize(416, 53))
+        self.search_field.setMaximumSize(QtCore.QSize(16777215, 53))
+        font = QtGui.QFont()
+        font.setFamily("Times New Roman")
+        font.setPointSize(18)
+        font.setBold(False)
+        font.setItalic(False)
+        font.setWeight(50)
+        self.search_field.setFont(font)
+        self.search_field.setStyleSheet("QTextEdit{\n"
                                             "    border: 2px solid #6E491E;\n"
                                             "    color: #563916;\n"
                                             "    font: 18pt \"Times New Roman\";\n"
                                             "}")
-            self.search_field.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-            self.search_field.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-            self.search_field.setObjectName("search_field")
-            self.search_layout.addWidget(self.search_field)
-            self.find_button = QtWidgets.QPushButton(self.centralwidget)
-            self.find_button.setMinimumSize(QtCore.QSize(155, 53))
-            self.find_button.setMaximumSize(QtCore.QSize(155, 53))
-            self.find_button.setToolTip("")
-            self.find_button.setWhatsThis("")
-            self.find_button.setStyleSheet("QPushButton{\n"
+        self.search_field.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.search_field.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
+        self.search_field.setObjectName("search_field")
+        self.search_layout.addWidget(self.search_field)
+        self.find_button = QtWidgets.QPushButton(self.centralwidget)
+        self.find_button.setMinimumSize(QtCore.QSize(155, 53))
+        self.find_button.setMaximumSize(QtCore.QSize(155, 53))
+        self.find_button.setToolTip("")
+        self.find_button.setWhatsThis("")
+        self.find_button.setStyleSheet("QPushButton{\n"
                                            "    border-image: url(:/image/find_button.png);\n"
                                            "}\n"
                                            "\n"
@@ -303,29 +304,29 @@ class Ui_MainWindow(object):
                                            "    border-image: url(:/image/find_pressbutton.png);\n"
                                            "}\n"
                                            "")
-            self.find_button.setText("")
-            self.find_button.setObjectName("find_button")
-            self.search_layout.addWidget(self.find_button)
-            self.catalog_layout.addLayout(self.search_layout)
+        self.find_button.setText("")
+        self.find_button.setObjectName("find_button")
+        self.search_layout.addWidget(self.find_button)
+        self.catalog_layout.addLayout(self.search_layout)
 
-            self.work_area_layout.addLayout(self.catalog_layout)
+        self.work_area_layout.addLayout(self.catalog_layout)
 
-            # Кнопки добавления удаления товаров из чека
-            self.filling_layout = QtWidgets.QVBoxLayout()
-            self.filling_layout.setContentsMargins(20, -1, 20, -1)
-            self.filling_layout.setSpacing(50)
-            self.filling_layout.setObjectName("filling_layout")
-            spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-            self.filling_layout.addItem(spacerItem)
-            self.add_button = QtWidgets.QPushButton(self.centralwidget)
-            self.add_button.setEnabled(True)
-            sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
-            sizePolicy.setHorizontalStretch(0)
-            sizePolicy.setVerticalStretch(0)
-            sizePolicy.setHeightForWidth(self.add_button.sizePolicy().hasHeightForWidth())
-            self.add_button.setSizePolicy(sizePolicy)
-            self.add_button.setMinimumSize(QtCore.QSize(59, 53))
-            self.add_button.setStyleSheet("QPushButton{\n"
+        # Кнопки добавления удаления товаров из чека
+        self.filling_layout = QtWidgets.QVBoxLayout()
+        self.filling_layout.setContentsMargins(20, -1, 20, -1)
+        self.filling_layout.setSpacing(50)
+        self.filling_layout.setObjectName("filling_layout")
+        spacerItem = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.filling_layout.addItem(spacerItem)
+        self.add_button = QtWidgets.QPushButton(self.centralwidget)
+        self.add_button.setEnabled(True)
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.add_button.sizePolicy().hasHeightForWidth())
+        self.add_button.setSizePolicy(sizePolicy)
+        self.add_button.setMinimumSize(QtCore.QSize(59, 53))
+        self.add_button.setStyleSheet("QPushButton{\n"
                                           "    border-image: url(:/image/add_button.png);\n"
                                           "}\n"
                                           "\n"
@@ -336,18 +337,18 @@ class Ui_MainWindow(object):
                                           "QPushButton:disabled {\n"
                                           "    border-image: url(:/image/add_disablebutton.png);\n"
                                           "}")
-            self.add_button.setText("")
-            self.add_button.setObjectName("add_button")
-            self.filling_layout.addWidget(self.add_button)
-            self.remove_button = QtWidgets.QPushButton(self.centralwidget)
+        self.add_button.setText("")
+        self.add_button.setObjectName("add_button")
+        self.filling_layout.addWidget(self.add_button)
+        self.remove_button = QtWidgets.QPushButton(self.centralwidget)
 
-            sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
-            sizePolicy.setHorizontalStretch(0)
-            sizePolicy.setVerticalStretch(0)
-            sizePolicy.setHeightForWidth(self.remove_button.sizePolicy().hasHeightForWidth())
-            self.remove_button.setSizePolicy(sizePolicy)
-            self.remove_button.setMinimumSize(QtCore.QSize(59, 53))
-            self.remove_button.setStyleSheet("QPushButton{\n"
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.remove_button.sizePolicy().hasHeightForWidth())
+        self.remove_button.setSizePolicy(sizePolicy)
+        self.remove_button.setMinimumSize(QtCore.QSize(59, 53))
+        self.remove_button.setStyleSheet("QPushButton{\n"
                                              "    border-image: url(:/image/remove_button.png);\n"
                                              "}\n"
                                              "\n"
@@ -358,32 +359,32 @@ class Ui_MainWindow(object):
                                              "QPushButton:disabled {\n"
                                              "    border-image: url(:/image/remove_disablebutton.png);\n"
                                              "}")
-            self.remove_button.setText("")
-            self.remove_button.setObjectName("remove_button")
-            self.filling_layout.addWidget(self.remove_button)
-            spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
-            self.filling_layout.addItem(spacerItem1)
+        self.remove_button.setText("")
+        self.remove_button.setObjectName("remove_button")
+        self.filling_layout.addWidget(self.remove_button)
+        spacerItem1 = QtWidgets.QSpacerItem(20, 40, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
+        self.filling_layout.addItem(spacerItem1)
 
-            self.work_area_layout.addLayout(self.filling_layout)
+        self.work_area_layout.addLayout(self.filling_layout)
 
-            # таблица чека
-            self.check_layout = QtWidgets.QVBoxLayout()
-            self.check_layout.setContentsMargins(-1, 12, -1, 12)
-            self.check_layout.setSpacing(23)
-            self.check_layout.setObjectName("check_layout")
-            self.chek_label = QtWidgets.QLabel(self.centralwidget)
-            self.chek_label.setMinimumSize(QtCore.QSize(101, 31))
-            font = QtGui.QFont()
-            font.setFamily("Times New Roman")
-            font.setPointSize(16)
-            font.setBold(True)
-            font.setWeight(75)
-            self.chek_label.setFont(font)
-            self.chek_label.setStyleSheet("color: #6E491E;")
-            self.chek_label.setObjectName("chek_label")
-            self.check_layout.addWidget(self.chek_label)
-            self.chek_table = QtWidgets.QTableView(self.centralwidget)
-            self.chek_table.setStyleSheet("QTableView {\n"
+        # таблица чека
+        self.check_layout = QtWidgets.QVBoxLayout()
+        self.check_layout.setContentsMargins(-1, 12, -1, 12)
+        self.check_layout.setSpacing(23)
+        self.check_layout.setObjectName("check_layout")
+        self.chek_label = QtWidgets.QLabel(self.centralwidget)
+        self.chek_label.setMinimumSize(QtCore.QSize(101, 31))
+        font = QtGui.QFont()
+        font.setFamily("Times New Roman")
+        font.setPointSize(16)
+        font.setBold(True)
+        font.setWeight(75)
+        self.chek_label.setFont(font)
+        self.chek_label.setStyleSheet("color: #6E491E;")
+        self.chek_label.setObjectName("chek_label")
+        self.check_layout.addWidget(self.chek_label)
+        self.chek_table = QtWidgets.QTableView(self.centralwidget)
+        self.chek_table.setStyleSheet("QTableView {\n"
                                           "    border:none;\n"
                                           "    border-top:2px solid #6E491E; \n"
                                           "      border-left: 2px solid #6E491E; \n"
@@ -420,55 +421,55 @@ class Ui_MainWindow(object):
                                           "    subcontrol-position: bottom right; \n"
                                           "}\n"
                                           "")
-            self.chek_table.setFrameShape(QtWidgets.QFrame.WinPanel)
-            self.chek_table.setFrameShadow(QtWidgets.QFrame.Plain)
-            self.chek_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-            self.chek_table.setTabKeyNavigation(False)
-            self.chek_table.setProperty("showDropIndicator", False)
-            self.chek_table.setDragDropOverwriteMode(False)
-            self.chek_table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
-            self.chek_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
-            self.chek_table.setSortingEnabled(True)
-            self.chek_table.setObjectName("chek_table")
-            self.chek_table.horizontalHeader().setCascadingSectionResizes(False)
-            self.chek_table.horizontalHeader().setHighlightSections(False)
-            self.chek_table.horizontalHeader().setSortIndicatorShown(True)
-            self.chek_table.horizontalHeader().setStretchLastSection(True)
-            self.chek_table.verticalHeader().setVisible(False)
-            self.chek_table.verticalHeader().setCascadingSectionResizes(False)
-            self.chek_table.verticalHeader().setStretchLastSection(True)
-            self.check_layout.addWidget(self.chek_table)
-            self.result_layout = QtWidgets.QHBoxLayout()
-            self.result_layout.setObjectName("result_layout")
-            self.result_label = QtWidgets.QLabel(self.centralwidget)
-            self.result_label.setMinimumSize(QtCore.QSize(101, 37))
-            self.result_label.setMaximumSize(QtCore.QSize(101, 37))
-            font = QtGui.QFont()
-            font.setFamily("Times New Roman")
-            font.setPointSize(20)
-            font.setBold(True)
-            font.setWeight(75)
-            self.result_label.setFont(font)
-            self.result_label.setStyleSheet("color: #6E491E;")
-            self.result_label.setObjectName("result_label")
-            self.result_layout.addWidget(self.result_label)
-            self.total_label = QtWidgets.QLabel(self.centralwidget)
-            self.total_label.setMinimumSize(QtCore.QSize(146, 37))
-            self.total_label.setMaximumSize(QtCore.QSize(16777215, 37))
-            font = QtGui.QFont()
-            font.setFamily("Times New Roman")
-            font.setPointSize(20)
-            font.setBold(True)
-            font.setWeight(75)
-            self.total_label.setFont(font)
-            self.total_label.setStyleSheet("color: #C66B00;")
-            self.total_label.setObjectName("total_label")
-            self.result_layout.addWidget(self.total_label)
-            self.confirm_button = QtWidgets.QPushButton(self.centralwidget)
-            self.confirm_button.setEnabled(False)
-            self.confirm_button.setMinimumSize(QtCore.QSize(195, 53))
-            self.confirm_button.setMaximumSize(QtCore.QSize(195, 53))
-            self.confirm_button.setStyleSheet("QPushButton{\n"
+        self.chek_table.setFrameShape(QtWidgets.QFrame.WinPanel)
+        self.chek_table.setFrameShadow(QtWidgets.QFrame.Plain)
+        self.chek_table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.chek_table.setTabKeyNavigation(False)
+        self.chek_table.setProperty("showDropIndicator", False)
+        self.chek_table.setDragDropOverwriteMode(False)
+        self.chek_table.setSelectionMode(QtWidgets.QAbstractItemView.SingleSelection)
+        self.chek_table.setSelectionBehavior(QtWidgets.QAbstractItemView.SelectRows)
+        self.chek_table.setSortingEnabled(True)
+        self.chek_table.setObjectName("chek_table")
+        self.chek_table.horizontalHeader().setCascadingSectionResizes(False)
+        self.chek_table.horizontalHeader().setHighlightSections(False)
+        self.chek_table.horizontalHeader().setSortIndicatorShown(True)
+        self.chek_table.horizontalHeader().setStretchLastSection(True)
+        self.chek_table.verticalHeader().setVisible(False)
+        self.chek_table.verticalHeader().setCascadingSectionResizes(False)
+        self.chek_table.verticalHeader().setStretchLastSection(True)
+        self.check_layout.addWidget(self.chek_table)
+        self.result_layout = QtWidgets.QHBoxLayout()
+        self.result_layout.setObjectName("result_layout")
+        self.result_label = QtWidgets.QLabel(self.centralwidget)
+        self.result_label.setMinimumSize(QtCore.QSize(101, 37))
+        self.result_label.setMaximumSize(QtCore.QSize(101, 37))
+        font = QtGui.QFont()
+        font.setFamily("Times New Roman")
+        font.setPointSize(20)
+        font.setBold(True)
+        font.setWeight(75)
+        self.result_label.setFont(font)
+        self.result_label.setStyleSheet("color: #6E491E;")
+        self.result_label.setObjectName("result_label")
+        self.result_layout.addWidget(self.result_label)
+        self.total_label = QtWidgets.QLabel(self.centralwidget)
+        self.total_label.setMinimumSize(QtCore.QSize(146, 37))
+        self.total_label.setMaximumSize(QtCore.QSize(16777215, 37))
+        font = QtGui.QFont()
+        font.setFamily("Times New Roman")
+        font.setPointSize(20)
+        font.setBold(True)
+        font.setWeight(75)
+        self.total_label.setFont(font)
+        self.total_label.setStyleSheet("color: #C66B00;")
+        self.total_label.setObjectName("total_label")
+        self.result_layout.addWidget(self.total_label)
+        self.confirm_button = QtWidgets.QPushButton(self.centralwidget)
+        self.confirm_button.setEnabled(False)
+        self.confirm_button.setMinimumSize(QtCore.QSize(195, 53))
+        self.confirm_button.setMaximumSize(QtCore.QSize(195, 53))
+        self.confirm_button.setStyleSheet("QPushButton{\n"
                                               "    border-image: url(:/image/confirm_button.png);\n"
                                               "}\n"
                                               "\n"
@@ -479,25 +480,25 @@ class Ui_MainWindow(object):
                                               "QPushButton:disabled {\n"
                                               "    border-image: url(:/image/confirm_disablebutton.png);\n"
                                               "}")
-            self.confirm_button.setText("")
-            self.confirm_button.setObjectName("confirm_button")
-            self.result_layout.addWidget(self.confirm_button)
-            self.check_layout.addLayout(self.result_layout)
+        self.confirm_button.setText("")
+        self.confirm_button.setObjectName("confirm_button")
+        self.result_layout.addWidget(self.confirm_button)
+        self.check_layout.addLayout(self.result_layout)
 
-            self.work_area_layout.addLayout(self.check_layout)
+        self.work_area_layout.addLayout(self.check_layout)
 
 
-            self.catalog_label.setText("Каталог")
-            self.add_button.setToolTip("Добавить товар")
-            self.remove_button.setToolTip("Убрать товар")
-            self.chek_label.setText("Чек")
-            self.result_label.setText("Итого:")
-            self.total_label.setText("сумма")
-            self.confirm_button.setToolTip("Создать чек")
+        self.catalog_label.setText("Каталог")
+        self.add_button.setToolTip("Добавить товар")
+        self.remove_button.setToolTip("Убрать товар")
+        self.chek_label.setText("Чек")
+        self.result_label.setText("Итого:")
+        self.total_label.setText("сумма")
+        self.confirm_button.setToolTip("Создать чек")
 
-            page.setLayout(self.work_area_layout)
+        page.setLayout(self.work_area_layout)
 
-            return page
+        return page
 
     def sales_page(self):
         page = QWidget()
@@ -841,13 +842,26 @@ class ItemDelegateCheck(QWidget):
         self.delCount_button.setObjectName("delCount_button")
         self.horizontalLayout.addWidget(self.delCount_button)
 
-
         self.addCount_button.setText("+")
         self.count_label.setText("1")
         self.delCount_button.setText("–")
 
         # Установка компоновки для виджета
         self.setLayout(self.horizontalLayout)
+
+        self.addCount_button.clicked.connect(self.increase_number)
+        self.delCount_button.clicked.connect(self.reduce_number)
+
+    def increase_number(self):
+        count = int(self.count_label.text())
+        count += 1
+        self.count_label.setText(str(count))
+
+    def reduce_number(self):
+        count = int(self.count_label.text())
+        if count != 1:
+            count -= 1
+            self.count_label.setText(str(count))
 
 class RowButton(QtWidgets.QPushButton):
     def __init__(self, row_number, *args, **kwargs):

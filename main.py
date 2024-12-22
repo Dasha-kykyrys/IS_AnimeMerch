@@ -1,5 +1,5 @@
 ﻿from PyQt5 import QtWidgets
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QSortFilterProxyModel, QRegExp
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 import sys
 from GUI import Ui_MainWindow, Ui_CreateEditAnime_form, Ui_CreateEditProduct_form, Ui_preview_form, ItemDelegateData, ItemDelegateCheck
@@ -7,17 +7,26 @@ from database import load_data_from_db, add_to_database_product, add_to_database
     delete_product, update_anime, update_product, save_database
 import re
 
+class CustomFilterProxyModel(QSortFilterProxyModel):
+    def filterAcceptsRow(self, sourceRow, sourceParent):
+        model = self.sourceModel()
+        filter_text = self.filterRegExp().pattern().lower()
+
+        if not filter_text:
+            return True
+
+        for column in [1, 2, 3]:  # Индексы для Наименование, Аниме и Цена
+            index = model.index(sourceRow, column, sourceParent)
+            if filter_text in str(model.data(index)).lower():
+                return True
+
+        return False
 
 class MainWindow(QtWidgets.QMainWindow):
     def __init__(self):
         super(MainWindow, self).__init__()
         self.ui_main_window = Ui_MainWindow()
         self.ui_main_window.setupUi(self)
-
-        #смена вкладок
-        self.ui_main_window.catalog_button.clicked.connect(lambda: self.change_widget(0))
-        self.ui_main_window.sales_button.clicked.connect(lambda: self.change_widget(1))
-        self.ui_main_window.management_button.clicked.connect(lambda: self.change_widget(2))
 
         #Таблицы во вкладке управления
         self.ui_main_window.animetable_button.clicked.connect(self.open_anime_table)
@@ -28,12 +37,27 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui_main_window.print_button.clicked.connect(self.open_preview)
         self.ui_main_window.creat_button.clicked.connect(self.open_create)
 
-        #Модель таблицы Каталог
-        self.catalog_model = QStandardItemModel(0, 4, self)
+        # Модель таблицы Каталог
+        self.catalog_model = QStandardItemModel(0, 5, self)  # 5 столбцов
         load_data_from_db(self.catalog_model, 'product_table')
         self.catalog_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Цена', 'Кол-во'])
-        self.ui_main_window.catalog_table.setModel(self.catalog_model)
-        for column in range(self.catalog_model.columnCount()): # Адаптирующиеся под данные столбцы
+
+        # Прокси-модель для фильтрации
+        self.proxy_model = CustomFilterProxyModel()
+        self.proxy_model.setSourceModel(self.catalog_model)
+
+        # Установка прокси-модели в таблицу
+        self.ui_main_window.catalog_table.setModel(self.proxy_model)
+
+        # Подключение кнопки поиска к фильтрации
+        self.ui_main_window.find_button.clicked.connect(self.on_search_clicked)
+
+        # Смена вкладок
+        self.ui_main_window.catalog_button.clicked.connect(lambda: self.change_widget(0))
+        self.ui_main_window.sales_button.clicked.connect(lambda: self.change_widget(1))
+        self.ui_main_window.management_button.clicked.connect(lambda: self.change_widget(2))
+
+        for column in range(self.catalog_model.columnCount()):
             self.ui_main_window.catalog_table.resizeColumnToContents(column)
 
         # Модель таблицы Чек
@@ -61,14 +85,19 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui_main_window.add_button.clicked.connect(self.add_item_to_check)
         self.ui_main_window.remove_button.clicked.connect(self.remove_item_from_check)
 
+    def on_search_clicked(self):
+        # Получаем текст из поля поиска
+        text = self.ui_main_window.search_field.toPlainText()
+        self.proxy_model.setFilterRegExp(QRegExp(text, Qt.CaseInsensitive, QRegExp.RegExp))
+
     def add_delegate_check(self):
         for row in range(self.check_model.rowCount()):
             item = self.check_model.item(row, 1)
 
             if item is not None:
                 item_delegate = ItemDelegateCheck()
-                self.ui_main_window.chek_table.setIndexWidget(self.check_model.index(row, 3),
-                                     item_delegate)  # Установка кнопок увелечения и уменьшения кол-во товаров в таблицу
+                # Установка кнопок увелечения и уменьшения кол-во товаров в таблицу
+                self.ui_main_window.chek_table.setIndexWidget(self.check_model.index(row, 3), item_delegate)
 
     def add_item_to_check(self):
         # Получение индексы строки в таблице каталога
@@ -77,15 +106,18 @@ class MainWindow(QtWidgets.QMainWindow):
         if not selected_indexes:
             return  # Если ничего не выбрано
 
-        # Получение индекса строки, выбранной пользователем
-        selected_row = selected_indexes[0].row()
+        # Получение индекса строки, выбранной пользователем в прокси-модели
+        proxy_index = selected_indexes[0]
 
-        # Получение данных из выбранной строки
-        item_number = self.catalog_model.item(selected_row, 0).text()  # №
-        item_name = self.catalog_model.item(selected_row, 1).text()  # Наименование
-        item_anime = self.catalog_model.item(selected_row, 2).text()  # Аниме
-        item_price = self.catalog_model.item(selected_row, 3).text()  # Цена
-        item_quantity = self.catalog_model.item(selected_row, 4).text()  # Кол-во
+        # Преобразование индекса прокси-модели в индекс исходной модели
+        source_index = self.proxy_model.mapToSource(proxy_index)
+
+        # Получение данных из исходной модели
+        item_number = self.catalog_model.item(source_index.row(), 0).text()  # №
+        item_name = self.catalog_model.item(source_index.row(), 1).text()  # Наименование
+        item_anime = self.catalog_model.item(source_index.row(), 2).text()  # Аниме
+        item_price = self.catalog_model.item(source_index.row(), 3).text()  # Цена
+        item_quantity = self.catalog_model.item(source_index.row(), 4).text()  # Кол-во
 
         # Сохранение информации о цене и количестве товара в словарь
         self.item_info[item_number] = {
@@ -103,10 +135,9 @@ class MainWindow(QtWidgets.QMainWindow):
         self.check_model.setItem(new_row, 2, QStandardItem(item_anime))  # Аниме
 
         # Удаление строки из каталога
-        self.catalog_model.removeRow(selected_row)
+        self.catalog_model.removeRow(source_index.row())
 
-        self.add_delegate_check()
-
+        self.add_delegate_check()  # Добавление кнопок увеличения и уменьшения кол-ва товаров в таблицу
 
     def remove_item_from_check(self):
         # Получаем выделенные индексы в таблице чека
@@ -146,6 +177,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # Удаление информации о товаре из словаря
         del self.item_info[item_number]
 
+        # Очистка выделения в таблице чека
+        self.ui_main_window.chek_table.clearSelection()
+
     def update_create_edit_anime(self, press_edit, current_name):
         self.create_edit_anime.press_edit = press_edit
         self.create_edit_anime.current_name = current_name
@@ -165,9 +199,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
             load_data_from_db(self.catalog_model, 'product_table')
             self.catalog_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Цена', 'Кол-во'])
-            self.ui_main_window.catalog_table.setModel(self.catalog_model)
+
+            self.proxy_model.setSourceModel(self.catalog_model)
+            self.ui_main_window.catalog_table.setModel(self.proxy_model)
             for column in range(self.catalog_model.columnCount()):  # Адаптирующиеся под данные столбцы
                 self.ui_main_window.catalog_table.resizeColumnToContents(column)
+
             self.check_model.clear()
             self.check_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Кол-во'])
             self.ui_main_window.chek_table.setModel(self.check_model)
