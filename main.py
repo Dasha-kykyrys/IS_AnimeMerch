@@ -3,10 +3,6 @@ from PyQt5.QtCore import Qt, QSortFilterProxyModel, QRegExp
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 import sys
 
-from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
-from docx.oxml import OxmlElement
-from docx.shared import Inches
-
 from GUI import Ui_MainWindow, Ui_CreateEditAnime_form, Ui_CreateEditProduct_form, Ui_preview_form, ItemDelegateData, ItemDelegateCheck
 from database import load_data_from_db, add_to_database_product, add_to_database_anime, delete_anime_by_name, \
     delete_product, update_anime, update_product, save_database
@@ -48,15 +44,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Модель таблицы Каталог
         self.catalog_model = QStandardItemModel(0, 5, self)  # 5 столбцов
-        load_data_from_db(self.catalog_model, 'product_table')
-        self.catalog_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Цена', 'Кол-во'])
-
-        # Прокси-модель для фильтрации
         self.proxy_model = CustomFilterProxyModel()
-        self.proxy_model.setSourceModel(self.catalog_model)
-
-        # Установка прокси-модели в таблицу
-        self.ui_main_window.catalog_table.setModel(self.proxy_model)
+        self.set_model_catalog()
 
         # Подключение кнопки поиска к фильтрации
         self.ui_main_window.find_button.clicked.connect(self.on_search_clicked)
@@ -66,41 +55,93 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui_main_window.sales_button.clicked.connect(lambda: self.change_widget(1))
         self.ui_main_window.management_button.clicked.connect(lambda: self.change_widget(2))
 
-        for column in range(self.catalog_model.columnCount()):
-            self.ui_main_window.catalog_table.resizeColumnToContents(column)
-
         # Модель таблицы Чек
         self.check_model = QStandardItemModel(0, 3, self)
-        self.check_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Кол-во'])
-        self.ui_main_window.chek_table.setModel(self.check_model)
-        for column in range(self.check_model.columnCount()): # Адаптирующиеся под данные столбцы
-            self.ui_main_window.chek_table.resizeColumnToContents(column)
+        self.set_model_check()
 
         # Модель таблицы Продажа
         self.sale_model = QStandardItemModel(0, 5, self)
+        self.set_model_sale()
 
         # Модель таблицы Товар
         self.product_model = QStandardItemModel(0, 5, self)
+        self.open_product_table()  # Таблица товары
 
         # Модель таблицы Аниме
         self.anime_model = QStandardItemModel(0, 2, self)
 
+        # Окно создания/редактирования аниме/товара
         self.create_edit_product = CreateEditProduct( self.ui_main_window, self.product_model,self.add_delegate_managment)
         self.create_edit_anime = CreateEditAnime(self.ui_main_window, self.anime_model, self.add_delegate_managment)
 
         # Словарь для хранения информации о ценах и количестве
         self.item_info = {}
 
-        self.ui_main_window.add_button.clicked.connect(self.add_item_to_check)
-        self.ui_main_window.remove_button.clicked.connect(self.remove_item_from_check)
+        self.ui_main_window.add_button.clicked.connect(self.add_item_to_check) # Кнопка добавление товара в чек
+        self.ui_main_window.remove_button.clicked.connect(self.remove_item_from_check) # Кнопка удаления товара из чека
 
-        self.ui_main_window.confirm_button.clicked.connect(self.save_check_to_docx)
+        self.ui_main_window.confirm_button.clicked.connect(self.save_check_to_docx) # Кнопка создания файла чека
 
+    # Настройки для модели таблицы "Чек"
+    def set_model_check(self):
+        self.check_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Кол-во'])
+        self.ui_main_window.chek_table.setModel(self.check_model)
+        for column in range(self.check_model.columnCount()):  # Адаптирующиеся под данные столбцы
+            self.ui_main_window.chek_table.resizeColumnToContents(column)
+
+    # Настройки для модели таблицы "Продажа"
+    def set_model_sale(self):
+        self.sale_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Цена', 'Кол-во', 'Дата'])
+        self.ui_main_window.sales_table.setModel(self.sale_model)
+        for column in range(self.sale_model.columnCount()):  # Адаптирующиеся под данные столбцы
+            self.ui_main_window.sales_table.resizeColumnToContents(column)
+
+    # Настройки для модели таблицы "Товар"
+    def set_model_product(self):
+        load_data_from_db(self.product_model, 'product_table')
+        self.product_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Цена', 'Кол-во', 'Действие'])
+        self.ui_main_window.management_table.setModel(self.product_model)
+        self.add_delegate_managment(self.product_model, self.ui_main_window.management_table, 5)
+        for column in range(self.product_model.columnCount()): # Адаптирующиеся под данные столбцы
+            self.ui_main_window.management_table.resizeColumnToContents(column)
+
+    def set_model_catalog(self):
+        load_data_from_db(self.catalog_model, 'product_table')
+        self.catalog_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Цена', 'Кол-во'])
+
+        self.proxy_model.setSourceModel(self.catalog_model)
+        self.ui_main_window.catalog_table.setModel(self.proxy_model)
+        for column in range(self.catalog_model.columnCount()):  # Адаптирующиеся под данные столбцы
+            self.ui_main_window.catalog_table.resizeColumnToContents(column)
+
+    # Открытие таблицы "Аниме"
+    def open_anime_table(self):
+        self.ui_main_window.print_button.hide()
+        self.ui_main_window.productstable_button.setEnabled(True)
+        self.ui_main_window.animetable_button.setEnabled(False)
+
+        load_data_from_db(self.anime_model, 'anime_table')
+        self.anime_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Действие'])
+        self.ui_main_window.management_table.setModel(self.anime_model)
+        self.add_delegate_managment(self.anime_model, self.ui_main_window.management_table, 2)
+        for column in range(self.anime_model.columnCount()): # Адаптирующиеся под данные столбцы
+            self.ui_main_window.management_table.resizeColumnToContents(column)
+
+    # Открытие таблицы "Товар"
+    def open_product_table(self):
+        self.ui_main_window.print_button.show()
+        self.ui_main_window.animetable_button.setEnabled(True)
+        self.ui_main_window.productstable_button.setEnabled(False)
+
+        self.set_model_product()
+
+    # Функция поиска по символу в таблицы каталог
     def on_search_clicked(self):
         # текст из поля поиска
         text = self.ui_main_window.search_field.toPlainText()
         self.proxy_model.setFilterRegExp(QRegExp(text, Qt.CaseInsensitive, QRegExp.RegExp))
 
+    # Добавление кнопок в столбик кол-во в таблице "Чек"
     def add_delegate_check(self):
         for row in range(self.check_model.rowCount()):
             item = self.check_model.item(row, 1)
@@ -110,6 +151,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 # Установка кнопок увелечения и уменьшения кол-во товаров в таблицу
                 self.ui_main_window.chek_table.setIndexWidget(self.check_model.index(row, 3), item_delegate)
 
+    # Функция добавления позиций в чек
     def add_item_to_check(self):
         # Получение индексы строки в таблице каталога
         selected_indexes = self.ui_main_window.catalog_table.selectedIndexes()
@@ -153,6 +195,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui_main_window.catalog_table.clearSelection()
         self.ui_main_window.confirm_button.setEnabled(True)
 
+    # Функция исключения позиций из чека
     def remove_item_from_check(self):
         # Получаем выделенные индексы в таблице чека
         selected_indexes = self.ui_main_window.chek_table.selectedIndexes()
@@ -196,13 +239,14 @@ class MainWindow(QtWidgets.QMainWindow):
         # Очистка выделения в таблице чека
         self.ui_main_window.chek_table.clearSelection()
 
+    # Создание файла чека/продажа товара
     def save_check_to_docx(self):
         # Создание нового документа
         doc = Document()
 
         # Заголовок
         heading = doc.add_heading('Чек', level=1)
-        heading.alignment = 1  # Центрируем заголовок
+        heading.alignment = 1
 
         # Дата покупки
         purchase_date = datetime.now().strftime("%Y-%m-%d %H-%M-%S")
@@ -273,15 +317,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.ui_main_window.catalog_table.resizeColumnToContents(column)
 
         self.check_model.clear()
-        self.check_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Кол-во'])
-        self.ui_main_window.chek_table.setModel(self.check_model)
-        for column in range(self.check_model.columnCount()):  # Адаптирующиеся под данные столбцы
-            self.ui_main_window.chek_table.resizeColumnToContents(column)
+        self.set_model_check()
 
+    # Открытие окна для редактирования аниме
     def update_create_edit_anime(self, press_edit, current_name):
         self.create_edit_anime.press_edit = press_edit
         self.create_edit_anime.current_name = current_name
 
+    # Открытие окна для редактирования товара
     def update_create_edit_product(self, press_edit, current_name, current_anime, current_price, current_count):
         self.create_edit_product.press_edit = press_edit
         self.create_edit_product.current_name = current_name
@@ -289,6 +332,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.create_edit_product.current_price = current_price
         self.create_edit_product.current_count = current_count
 
+    # Переключение м/у вкладками
     def change_widget(self, index):
         if index == 0: # Открытие Каталога
             self.ui_main_window.catalog_button.setEnabled(False)
@@ -296,63 +340,24 @@ class MainWindow(QtWidgets.QMainWindow):
             self.ui_main_window.management_button.setEnabled(True)
             self.ui_main_window.confirm_button.setEnabled(False)
 
-            load_data_from_db(self.catalog_model, 'product_table')
-            self.catalog_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Цена', 'Кол-во'])
+            self.set_model_catalog()
 
-            self.proxy_model.setSourceModel(self.catalog_model)
-            self.ui_main_window.catalog_table.setModel(self.proxy_model)
-            for column in range(self.catalog_model.columnCount()):  # Адаптирующиеся под данные столбцы
-                self.ui_main_window.catalog_table.resizeColumnToContents(column)
-
-            self.check_model.clear()
-            self.check_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Кол-во'])
-            self.ui_main_window.chek_table.setModel(self.check_model)
-            for column in range(self.check_model.columnCount()):  # Адаптирующиеся под данные столбцы
-                self.ui_main_window.chek_table.resizeColumnToContents(column)
+            self.check_model.clear() # Очистка таблицы чек
+            self.set_model_check()
 
         if index == 1: # Открытие Продажи
             self.ui_main_window.catalog_button.setEnabled(True)
             self.ui_main_window.sales_button.setEnabled(False)
             self.ui_main_window.management_button.setEnabled(True)
 
-            self.sale_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Цена', 'Кол-во', 'Дата'])
-            self.ui_main_window.sales_table.setModel(self.sale_model)
-            for column in range(self.sale_model.columnCount()): # Адаптирующиеся под данные столбцы
-                self.ui_main_window.sales_table.resizeColumnToContents(column)
-
         if index == 2: # Открытие Управление
             self.ui_main_window.catalog_button.setEnabled(True)
             self.ui_main_window.sales_button.setEnabled(True)
             self.ui_main_window.management_button.setEnabled(False)
 
-            self.open_product_table()
-
         self.ui_main_window.stacked_widget.setCurrentIndex(index)
 
-    def open_anime_table(self):
-        self.ui_main_window.print_button.hide()
-        self.ui_main_window.productstable_button.setEnabled(True)
-        self.ui_main_window.animetable_button.setEnabled(False)
-
-        load_data_from_db(self.anime_model, 'anime_table')
-        self.anime_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Действие'])
-        self.ui_main_window.management_table.setModel(self.anime_model)
-        self.add_delegate_managment(self.anime_model, self.ui_main_window.management_table, 2)
-        for column in range(self.anime_model.columnCount()): # Адаптирующиеся под данные столбцы
-            self.ui_main_window.management_table.resizeColumnToContents(column)
-
-    def open_product_table(self):
-        self.ui_main_window.print_button.show()
-        self.ui_main_window.animetable_button.setEnabled(True)
-        self.ui_main_window.productstable_button.setEnabled(False)
-
-        load_data_from_db(self.product_model, 'product_table')
-        self.product_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Цена', 'Кол-во', 'Действие'])
-        self.ui_main_window.management_table.setModel(self.product_model)
-        self.add_delegate_managment(self.product_model, self.ui_main_window.management_table, 5)
-        for column in range(self.product_model.columnCount()): # Адаптирующиеся под данные столбцы
-            self.ui_main_window.management_table.resizeColumnToContents(column)
-
+    # Открытие окна для добавления товара/аниме
     def open_create(self):
         if self.ui_main_window.productstable_button.isEnabled(): # Если активна кнопка "Товары", то открыта таблица Аниме
             self.create_edit_anime.ui_create_edit_anime.name_textedit.clear()
@@ -363,10 +368,12 @@ class MainWindow(QtWidgets.QMainWindow):
             self.create_edit_product.setWindowModality(Qt.ApplicationModal)
             self.create_edit_product.show()
 
+    # Открытие окна для отправки на печать
     def open_preview(self):
         preview.setWindowModality(Qt.ApplicationModal)
         preview.show()
 
+    # Добавление кнопок в столбик действие в таблице "Товары"
     def add_delegate_managment(self, model, table, number):
         for row in range(model.rowCount()):
             item = model.item(row, 1)
@@ -377,6 +384,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
                 item_delegate.button_clicked.connect(self.handle_button_click)
 
+    # Функция для кнопок в таблице "Товары"
     def handle_button_click(self, button_type, row_number):
         type_button = button_type # Определение кнопки
         number_row = row_number # Определение в какой она строке
@@ -428,6 +436,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 load_data_from_db(self.anime_model, 'anime_table')
                 self.anime_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Действие'])
                 self.add_delegate_managment(self.anime_model, self.ui_main_window.management_table, 2)
+
             else:
                 index_name = self.ui_main_window.management_table.model().index(number_row, 1)
                 index_anime = self.ui_main_window.management_table.model().index(number_row, 2)
@@ -442,10 +451,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 delete_product(name, anime, price, count)
 
                 load_data_from_db(self.product_model, 'product_table')
-                self.product_model.setHorizontalHeaderLabels(
-                    ['№', 'Наименование', 'Аниме', 'Цена', 'Кол-во', 'Действие'])
+                self.product_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Цена', 'Кол-во', 'Действие'])
                 self.add_delegate_managment(self.product_model, self.ui_main_window.management_table, 5)
 
+    # Функция сохраняющая БД в sql файл после закрытия программы
     def closeEvent(self, event):
         save_database()
         event.accept()
@@ -542,7 +551,6 @@ class CreateEditProduct(QtWidgets.QWidget):
         self.ui_create_edit_product.anime_textedit.clear()
         self.ui_create_edit_product.price_textedit.clear()
         self.ui_create_edit_product.count_textedit.clear()
-
 
 class CreateEditAnime(QtWidgets.QWidget):
     def __init__(self, main_window, anime_model, add_delegate):

@@ -100,7 +100,7 @@ CREATE TABLE public.sale (
     id_sale integer NOT NULL,
     s_product integer NOT NULL,
     s_count integer NOT NULL,
-    s_price real NOT NULL,
+    s_price integer NOT NULL,
     s_date date NOT NULL
 );
 
