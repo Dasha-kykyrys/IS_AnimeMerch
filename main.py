@@ -153,13 +153,20 @@ class MainWindow(QtWidgets.QMainWindow):
                 table.setIndexWidget(model.index(row, number), item_delegate)  # Установка кнопок в таблицу
                 item_delegate.button_clicked.connect(self.handle_button_click_check)
 
+                # Чтобы не сбрасывалось уже набранное количество товара в чеке
+                item_number = self.check_model.item(row, 0).text()
+                item_info = self.item_info.get(item_number)
+                if item_info is None:
+                    return  # Если информация не найдена
+                current_count = int(item_info['select_quantity'])
+                item_delegate.update_count_label(current_count)
+
     # Функция для кнопок в таблице "Товары"
     def handle_button_click_check(self, button_type, row_number):
         type_button = button_type  # Определение типа кнопки
         number_row = row_number  # Определение строки
         index_count = self.ui_main_window.chek_table.model().index(number_row, 3)
         item_delegate = self.ui_main_window.chek_table.indexWidget(index_count)
-        current_count = int(item_delegate.count_label.text())
 
         # Получение данных из выбранной строки
         item_number = self.check_model.item(number_row, 0).text()  # №
@@ -169,14 +176,18 @@ class MainWindow(QtWidgets.QMainWindow):
             return  # Если информация не найдена
 
         item_quantity = int(item_info['quantity'])
+        current_count = int(item_info['select_quantity'])
+        item_delegate.update_count_label(current_count)
 
         if type_button == "add" and current_count < item_quantity:
-            new_count = current_count + 1  # Увеличиваем счетчик
-            item_delegate.update_count_label(new_count)
+            current_count = current_count + 1  # Увеличиваем счетчик
+            item_delegate.update_count_label(current_count)
 
         elif type_button == "delete" and current_count > 1:
-                new_count = current_count - 1  # Уменьшаем счетчик
-                item_delegate.update_count_label(new_count)
+                current_count = current_count - 1  # Уменьшаем счетчик
+                item_delegate.update_count_label(current_count)
+
+        item_info['select_quantity'] = str(current_count)
 
 
     # Функция добавления позиций в чек
@@ -189,7 +200,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Получение индекса строки, выбранной пользователем в прокси-модели
         proxy_index = selected_indexes[0]
-
         # Преобразование индекса прокси-модели в индекс исходной модели
         source_index = self.proxy_model.mapToSource(proxy_index)
 
@@ -199,13 +209,15 @@ class MainWindow(QtWidgets.QMainWindow):
         item_anime = self.catalog_model.item(source_index.row(), 2).text()  # Аниме
         item_price = self.catalog_model.item(source_index.row(), 3).text()  # Цена
         item_quantity = self.catalog_model.item(source_index.row(), 4).text()  # Кол-во
+        item_select_quantity = 1
 
         # Сохранение информации о цене и количестве товара в словарь
         self.item_info[item_number] = {
             'name': item_name,
             'anime': item_anime,
             'price': item_price,
-            'quantity': item_quantity
+            'quantity': item_quantity,
+            'select_quantity': item_select_quantity,
         }
 
         # Добавление элемента в чек
