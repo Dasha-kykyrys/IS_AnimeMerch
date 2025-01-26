@@ -2,7 +2,6 @@
 from PyQt5.QtCore import Qt, QSortFilterProxyModel, QRegExp
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 import sys
-
 from GUI import Ui_MainWindow, Ui_CreateEditAnime_form, Ui_CreateEditProduct_form, Ui_preview_form, ItemDelegateData, ItemDelegateCheck
 from database import load_data_from_db, add_to_database_product, add_to_database_anime, delete_anime_by_name, \
     delete_product, update_anime, update_product, save_database
@@ -13,7 +12,7 @@ import os
 
 
 class CustomFilterProxyModel(QSortFilterProxyModel):
-    def filterAcceptsRow(self, sourceRow, sourceParent):
+    def filterAcceptsRow(self, source_row, source_parent):
         model = self.sourceModel()
         filter_text = self.filterRegExp().pattern().lower()
 
@@ -21,7 +20,7 @@ class CustomFilterProxyModel(QSortFilterProxyModel):
             return True
 
         for column in [1, 2, 3]:  # Индексы для Наименование, Аниме и Цена
-            index = model.index(sourceRow, column, sourceParent)
+            index = model.index(source_row, column, source_parent)
             if filter_text in str(model.data(index)).lower():
                 return True
 
@@ -44,7 +43,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Модель таблицы Каталог
         self.catalog_model = QStandardItemModel(0, 5, self)  # 5 столбцов
-        self.proxy_model = CustomFilterProxyModel()
         self.set_model_catalog()
 
         # Подключение кнопки поиска к фильтрации
@@ -71,11 +69,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.anime_model = QStandardItemModel(0, 2, self)
 
         # Окно создания/редактирования аниме/товара
-        self.create_edit_product = CreateEditProduct( self.ui_main_window, self.product_model,self.add_delegate_managment)
-        self.create_edit_anime = CreateEditAnime(self.ui_main_window, self.anime_model, self.add_delegate_managment)
+        self.create_edit_product = CreateEditProduct(self.ui_main_window, self.product_model, self.add_delegate_management)
+        self.create_edit_anime = CreateEditAnime(self.ui_main_window, self.anime_model, self.add_delegate_management)
 
         # Словарь для хранения информации о ценах и количестве
         self.item_info = {}
+        self.total_cost = 0
+        self.ui_main_window.total_label.setText(str(self.total_cost) + " руб.")
 
         self.ui_main_window.add_button.clicked.connect(self.add_item_to_check) # Кнопка добавление товара в чек
         self.ui_main_window.remove_button.clicked.connect(self.remove_item_from_check) # Кнопка удаления товара из чека
@@ -101,11 +101,13 @@ class MainWindow(QtWidgets.QMainWindow):
         load_data_from_db(self.product_model, 'product_table')
         self.product_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Цена', 'Кол-во', 'Действие'])
         self.ui_main_window.management_table.setModel(self.product_model)
-        self.add_delegate_managment(self.product_model, self.ui_main_window.management_table, 5)
+        self.add_delegate_management(self.product_model, self.ui_main_window.management_table, 5)
         for column in range(self.product_model.columnCount()): # Адаптирующиеся под данные столбцы
             self.ui_main_window.management_table.resizeColumnToContents(column)
 
+    # Настройки для модели таблицы "Каталог"
     def set_model_catalog(self):
+        self.proxy_model = CustomFilterProxyModel()
         load_data_from_db(self.catalog_model, 'product_table')
         self.catalog_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Цена', 'Кол-во'])
 
@@ -123,7 +125,7 @@ class MainWindow(QtWidgets.QMainWindow):
         load_data_from_db(self.anime_model, 'anime_table')
         self.anime_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Действие'])
         self.ui_main_window.management_table.setModel(self.anime_model)
-        self.add_delegate_managment(self.anime_model, self.ui_main_window.management_table, 2)
+        self.add_delegate_management(self.anime_model, self.ui_main_window.management_table, 2)
         for column in range(self.anime_model.columnCount()): # Адаптирующиеся под данные столбцы
             self.ui_main_window.management_table.resizeColumnToContents(column)
 
@@ -142,14 +144,40 @@ class MainWindow(QtWidgets.QMainWindow):
         self.proxy_model.setFilterRegExp(QRegExp(text, Qt.CaseInsensitive, QRegExp.RegExp))
 
     # Добавление кнопок в столбик кол-во в таблице "Чек"
-    def add_delegate_check(self):
-        for row in range(self.check_model.rowCount()):
-            item = self.check_model.item(row, 1)
+    def add_delegate_check(self, model, table, number):
+        for row in range(model.rowCount()):
+            item = model.item(row, 1)
 
             if item is not None:
-                item_delegate = ItemDelegateCheck()
-                # Установка кнопок увелечения и уменьшения кол-во товаров в таблицу
-                self.ui_main_window.chek_table.setIndexWidget(self.check_model.index(row, 3), item_delegate)
+                item_delegate = ItemDelegateCheck(row)  # экземпляр ItemDelegateCheck
+                table.setIndexWidget(model.index(row, number), item_delegate)  # Установка кнопок в таблицу
+                item_delegate.button_clicked.connect(self.handle_button_click_check)
+
+    # Функция для кнопок в таблице "Товары"
+    def handle_button_click_check(self, button_type, row_number):
+        type_button = button_type  # Определение типа кнопки
+        number_row = row_number  # Определение строки
+        index_count = self.ui_main_window.chek_table.model().index(number_row, 3)
+        item_delegate = self.ui_main_window.chek_table.indexWidget(index_count)
+        current_count = int(item_delegate.count_label.text())
+
+        # Получение данных из выбранной строки
+        item_number = self.check_model.item(number_row, 0).text()  # №
+
+        item_info = self.item_info.get(item_number)
+        if item_info is None:
+            return  # Если информация не найдена
+
+        item_quantity = int(item_info['quantity'])
+
+        if type_button == "add" and current_count < item_quantity:
+            new_count = current_count + 1  # Увеличиваем счетчик
+            item_delegate.update_count_label(new_count)
+
+        elif type_button == "delete" and current_count > 1:
+                new_count = current_count - 1  # Уменьшаем счетчик
+                item_delegate.update_count_label(new_count)
+
 
     # Функция добавления позиций в чек
     def add_item_to_check(self):
@@ -190,10 +218,13 @@ class MainWindow(QtWidgets.QMainWindow):
         # Удаление строки из каталога
         self.catalog_model.removeRow(source_index.row())
 
-        self.add_delegate_check()  # Добавление кнопок увеличения и уменьшения кол-ва товаров в таблицу
+        self.add_delegate_check(self.check_model, self.ui_main_window.chek_table, 3)  # Добавление кнопок увеличения и уменьшения кол-ва товаров в таблицу
 
         self.ui_main_window.catalog_table.clearSelection()
         self.ui_main_window.confirm_button.setEnabled(True)
+
+        self.total_cost += int(item_price)
+        self.ui_main_window.total_label.setText(str(self.total_cost) + " руб.")
 
     # Функция исключения позиций из чека
     def remove_item_from_check(self):
@@ -238,6 +269,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Очистка выделения в таблице чека
         self.ui_main_window.chek_table.clearSelection()
+
+        self.total_cost -= int(item_price)
+        self.ui_main_window.total_label.setText(str(self.total_cost) + " руб.")
 
     # Создание файла чека/продажа товара
     def save_check_to_docx(self):
@@ -308,13 +342,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Удаление .docx файла после конвертации
         os.remove(docx_file_path)
 
-        load_data_from_db(self.catalog_model, 'product_table')
-        self.catalog_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Цена', 'Кол-во'])
-
-        self.proxy_model.setSourceModel(self.catalog_model)
-        self.ui_main_window.catalog_table.setModel(self.proxy_model)
-        for column in range(self.catalog_model.columnCount()):  # Адаптирующиеся под данные столбцы
-            self.ui_main_window.catalog_table.resizeColumnToContents(column)
+        self.set_model_catalog()
 
         self.check_model.clear()
         self.set_model_check()
@@ -340,10 +368,14 @@ class MainWindow(QtWidgets.QMainWindow):
             self.ui_main_window.management_button.setEnabled(True)
             self.ui_main_window.confirm_button.setEnabled(False)
 
+            self.ui_main_window.search_field.clear()
             self.set_model_catalog()
 
             self.check_model.clear() # Очистка таблицы чек
             self.set_model_check()
+
+            self.total_cost = 0
+            self.ui_main_window.total_label.setText(str(self.total_cost) + " руб.")
 
         if index == 1: # Открытие Продажи
             self.ui_main_window.catalog_button.setEnabled(True)
@@ -374,18 +406,17 @@ class MainWindow(QtWidgets.QMainWindow):
         preview.show()
 
     # Добавление кнопок в столбик действие в таблице "Товары"
-    def add_delegate_managment(self, model, table, number):
+    def add_delegate_management(self, model, table, number):
         for row in range(model.rowCount()):
             item = model.item(row, 1)
 
             if item is not None:
-                item_delegate = ItemDelegateData(row)
+                item_delegate = ItemDelegateData(row)  # экземпляр ItemDelegateData
                 table.setIndexWidget(model.index(row, number), item_delegate)  # Установка кнопок редактирования и удаления в таблицу
-
-                item_delegate.button_clicked.connect(self.handle_button_click)
+                item_delegate.button_clicked.connect(self.handle_button_click_management)
 
     # Функция для кнопок в таблице "Товары"
-    def handle_button_click(self, button_type, row_number):
+    def handle_button_click_management(self, button_type, row_number):
         type_button = button_type # Определение кнопки
         number_row = row_number # Определение в какой она строке
 
@@ -435,7 +466,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 # Загрузка данных из базы данных
                 load_data_from_db(self.anime_model, 'anime_table')
                 self.anime_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Действие'])
-                self.add_delegate_managment(self.anime_model, self.ui_main_window.management_table, 2)
+                self.add_delegate_management(self.anime_model, self.ui_main_window.management_table, 2)
 
             else:
                 index_name = self.ui_main_window.management_table.model().index(number_row, 1)
@@ -452,7 +483,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
                 load_data_from_db(self.product_model, 'product_table')
                 self.product_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Цена', 'Кол-во', 'Действие'])
-                self.add_delegate_managment(self.product_model, self.ui_main_window.management_table, 5)
+                self.add_delegate_management(self.product_model, self.ui_main_window.management_table, 5)
 
     # Функция сохраняющая БД в sql файл после закрытия программы
     def closeEvent(self, event):

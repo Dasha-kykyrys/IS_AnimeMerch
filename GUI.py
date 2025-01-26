@@ -493,7 +493,6 @@ class Ui_MainWindow(object):
         self.remove_button.setToolTip("Убрать товар")
         self.chek_label.setText("Чек")
         self.result_label.setText("Итого:")
-        self.total_label.setText("сумма")
         self.confirm_button.setToolTip("Создать чек")
 
         page.setLayout(self.work_area_layout)
@@ -791,9 +790,21 @@ class Ui_MainWindow(object):
             page.setLayout(self.work_area_layout)
             return page
 
+class RowButton(QtWidgets.QPushButton):
+    def __init__(self, row_number, *args, **kwargs):
+        super(RowButton, self).__init__(*args, **kwargs)
+        self.row_number = row_number
+
+    def get_row_number(self):
+        return self.row_number
+
 class ItemDelegateCheck(QWidget):
-    def __init__(self, parent=None):
+    button_clicked = QtCore.pyqtSignal(str, int)  # Создаем сигнал для передачи типа кнопки и номера строки
+
+    def __init__(self, row_number, parent=None):
         super(ItemDelegateCheck, self).__init__(parent)
+
+        self.row_number = row_number  # Номер строки
 
         self.horizontalLayoutWidget = QtWidgets.QWidget(self)
         self.horizontalLayoutWidget.setObjectName("horizontalLayoutWidget")
@@ -801,7 +812,7 @@ class ItemDelegateCheck(QWidget):
         self.horizontalLayout.setContentsMargins(20, 0, 20, 0)
         self.horizontalLayout.setObjectName("horizontalLayout")
 
-        self.addCount_button = QtWidgets.QPushButton(self.horizontalLayoutWidget)
+        self.addCount_button = RowButton(row_number, self.horizontalLayoutWidget)
         self.addCount_button.setMinimumSize(QtCore.QSize(32, 32))
         self.addCount_button.setMaximumSize(QtCore.QSize(32, 32))
         self.addCount_button.setStyleSheet("QPushButton{\n"
@@ -811,22 +822,24 @@ class ItemDelegateCheck(QWidget):
                                            "}\n"
                                            "\n"
                                            "QPushButton:pressed {\n"
-                                                "color: #B57F3E;\n"
+                                           "    color: #B57F3E;\n"
                                            "}\n"
                                            )
         self.addCount_button.setObjectName("addCount_button")
+        self.addCount_button.setText("+")
+        self.addCount_button.clicked.connect(lambda: self.on_button_clicked("add", row_number))  # Передаем тип кнопки
         self.horizontalLayout.addWidget(self.addCount_button)
 
         self.count_label = QtWidgets.QLabel(self.horizontalLayoutWidget)
         self.count_label.setStyleSheet("color: #6E491E;\n"
                                        "font: 75 14pt \"Times New Roman\";\n"
-                                       "\n"
                                        )
         self.count_label.setAlignment(QtCore.Qt.AlignCenter)
         self.count_label.setObjectName("count_label")
+        self.count_label.setText("1")
         self.horizontalLayout.addWidget(self.count_label)
 
-        self.delCount_button = QtWidgets.QPushButton(self.horizontalLayoutWidget)
+        self.delCount_button = RowButton(row_number, self.horizontalLayoutWidget)
         self.delCount_button.setMinimumSize(QtCore.QSize(32, 32))
         self.delCount_button.setMaximumSize(QtCore.QSize(32, 32))
         self.delCount_button.setStyleSheet("QPushButton{\n"
@@ -836,43 +849,22 @@ class ItemDelegateCheck(QWidget):
                                            "}\n"
                                            "\n"
                                            "QPushButton:pressed {\n"
-                                                "color: B57F3E;\n"
+                                           "    color: #B57F3E;\n"
                                            "}\n"
                                            )
         self.delCount_button.setObjectName("delCount_button")
-        self.horizontalLayout.addWidget(self.delCount_button)
-
-        self.addCount_button.setText("+")
-        self.count_label.setText("1")
         self.delCount_button.setText("–")
+        self.delCount_button.clicked.connect(lambda: self.on_button_clicked("delete", row_number))  # Передаем тип кнопки
+        self.horizontalLayout.addWidget(self.delCount_button)
 
         # Установка компоновки для виджета
         self.setLayout(self.horizontalLayout)
 
-        self.addCount_button.clicked.connect(self.increase_number)
-        self.delCount_button.clicked.connect(self.reduce_number)
+    def on_button_clicked(self, button_type, row_number):
+        self.button_clicked.emit(button_type, row_number)  # Cигнал с типом кнопки и номером строки
 
-    def increase_number(self):
-        count = int(self.count_label.text())
-        count += 1
+    def update_count_label(self, count):
         self.count_label.setText(str(count))
-
-    def reduce_number(self):
-        count = int(self.count_label.text())
-        if count != 1:
-            count -= 1
-            self.count_label.setText(str(count))
-
-    def get_count(self):
-        return int(self.count_label.text())
-
-class RowButton(QtWidgets.QPushButton):
-    def __init__(self, row_number, *args, **kwargs):
-        super(RowButton, self).__init__(*args, **kwargs)
-        self.row_number = row_number
-
-    def get_row_number(self):
-        return self.row_number
 
 class ItemDelegateData(QWidget):
     button_clicked = QtCore.pyqtSignal(str, int)  # Создаем сигнал для передачи типа кнопки и номера строки

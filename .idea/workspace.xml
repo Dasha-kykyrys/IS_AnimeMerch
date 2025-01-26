@@ -6,7 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="2782cb93-3d55-465a-b2f3-5f0cd01fdfb9" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/anime_merch.sql" beforeDir="false" afterPath="$PROJECT_DIR$/anime_merch.sql" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/GUI.py" beforeDir="false" afterPath="$PROJECT_DIR$/GUI.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -40,21 +40,24 @@
   "keyToString": {
     "Python.AddButtonInTable.executor": "Run",
     "Python.Delet.executor": "Run",
-    "Python.GUI.executor": "Debug",
+    "Python.GUI.executor": "Run",
     "Python.MainWindow.executor": "Run",
     "Python.Test.executor": "Run",
     "Python.TestBD2.executor": "Run",
     "Python.TestDB.executor": "Run",
     "Python.TestDataBase.executor": "Run",
+    "Python.TestDocker.executor": "Debug",
     "Python.TestFInd.executor": "Debug",
-    "Python.TestPrint.executor": "Run",
-    "Python.database.executor": "Run",
+    "Python.TestPrint.executor": "Debug",
+    "Python.TestPrint2.executor": "Run",
+    "Python.database.executor": "Debug",
     "Python.index.executor": "Run",
     "Python.main.executor": "Debug",
     "Python.sales.executor": "Run",
+    "Python.test.executor": "Debug",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "master",
-    "last_opened_file_path": "C:/Users/user/Downloads/hyggehomes-master",
+    "last_opened_file_path": "C:/Users/user/OneDrive/Desktop/IS_AnimeMerch",
     "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
 }]]></component>
