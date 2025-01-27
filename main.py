@@ -1,17 +1,45 @@
-﻿from PyQt5 import QtWidgets
-from PyQt5.QtCore import Qt, QSortFilterProxyModel, QRegExp
+﻿from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtCore import Qt, QSortFilterProxyModel, QRegExp, QDate
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 import sys
+from PyQt5.QtWidgets import QFileDialog
 from GUI import Ui_MainWindow, Ui_CreateEditAnime_form, Ui_CreateEditProduct_form, Ui_preview_form, ItemDelegateData, ItemDelegateCheck
 from database import load_data_from_db, add_to_database_product, add_to_database_anime, delete_anime_by_name, \
-    delete_product, update_anime, update_product, save_database
+    delete_product, update_anime, update_product, save_database, add_sales
 import re
 from docx import Document
 from datetime import datetime
 import os
+from docx2pdf import convert
 
+class FilterOrder(QSortFilterProxyModel):
+    def __init__(self, *args, start_date=None, end_date=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.start_date = start_date
+        self.end_date = end_date
 
-class CustomFilterProxyModel(QSortFilterProxyModel):
+    def set_date_range(self, start_date, end_date):
+        self.start_date = start_date
+        self.end_date = end_date
+        self.invalidateFilter()
+
+    def filterAcceptsRow(self, source_row, source_parent):
+        model = self.sourceModel()
+
+        # Дата продажи из модели
+        sale_date_index = model.index(source_row, 5, source_parent)
+        sale_date = model.data(sale_date_index)
+        sale_date = sale_date.split()[0]
+
+        if isinstance(sale_date, str):
+            sale_date = QDate.fromString(sale_date, 'yyyy-MM-dd')
+
+        if self.start_date and self.end_date:
+            return self.start_date <= sale_date <= self.end_date
+
+        return True  # Если даты не заданы
+
+class FilterCatalog(QSortFilterProxyModel):
     def filterAcceptsRow(self, source_row, source_parent):
         model = self.sourceModel()
         filter_text = self.filterRegExp().pattern().lower()
@@ -45,8 +73,13 @@ class MainWindow(QtWidgets.QMainWindow):
         self.catalog_model = QStandardItemModel(0, 5, self)  # 5 столбцов
         self.set_model_catalog()
 
-        # Подключение кнопки поиска к фильтрации
+        # Подключение кнопки поиска в каталоге
         self.ui_main_window.find_button.clicked.connect(self.on_search_clicked)
+
+        # Подключение кнопки фильтрации в продажах
+        self.ui_main_window.confirmdate_button.clicked.connect(self.on_filter_clicked)
+        self.ui_main_window.begin_dateEdit.setDate(datetime.now())
+        self.ui_main_window.end_dateEdit.setDate(datetime.now())
 
         # Смена вкладок
         self.ui_main_window.catalog_button.clicked.connect(lambda: self.change_widget(0))
@@ -80,7 +113,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui_main_window.add_button.clicked.connect(self.add_item_to_check) # Кнопка добавление товара в чек
         self.ui_main_window.remove_button.clicked.connect(self.remove_item_from_check) # Кнопка удаления товара из чека
 
-        self.ui_main_window.confirm_button.clicked.connect(self.save_check_to_docx) # Кнопка создания файла чека
+        self.ui_main_window.confirm_button.clicked.connect(self.save_check) # Кнопка создания файла чека
 
     # Настройки для модели таблицы "Чек"
     def set_model_check(self):
@@ -91,8 +124,13 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # Настройки для модели таблицы "Продажа"
     def set_model_sale(self):
+        self.proxy_model_sale = FilterOrder()
+
+        load_data_from_db(self.sale_model, 'sale_table')
         self.sale_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Цена', 'Кол-во', 'Дата'])
-        self.ui_main_window.sales_table.setModel(self.sale_model)
+
+        self.proxy_model_sale.setSourceModel(self.sale_model)
+        self.ui_main_window.sales_table.setModel(self.proxy_model_sale)
         for column in range(self.sale_model.columnCount()):  # Адаптирующиеся под данные столбцы
             self.ui_main_window.sales_table.resizeColumnToContents(column)
 
@@ -107,12 +145,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # Настройки для модели таблицы "Каталог"
     def set_model_catalog(self):
-        self.proxy_model = CustomFilterProxyModel()
+        self.proxy_model_catalog = FilterCatalog()
         load_data_from_db(self.catalog_model, 'product_table')
         self.catalog_model.setHorizontalHeaderLabels(['№', 'Наименование', 'Аниме', 'Цена', 'Кол-во'])
 
-        self.proxy_model.setSourceModel(self.catalog_model)
-        self.ui_main_window.catalog_table.setModel(self.proxy_model)
+        self.proxy_model_catalog.setSourceModel(self.catalog_model)
+        self.ui_main_window.catalog_table.setModel(self.proxy_model_catalog)
         for column in range(self.catalog_model.columnCount()):  # Адаптирующиеся под данные столбцы
             self.ui_main_window.catalog_table.resizeColumnToContents(column)
 
@@ -137,11 +175,18 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.set_model_product()
 
+    def on_filter_clicked(self):
+        start_date = self.ui_main_window.begin_dateEdit.date()  # Начальная дата
+        end_date = self.ui_main_window.end_dateEdit.date()  # Конечная дата
+
+        # Диапазон дат в прокси модели
+        self.proxy_model_sale.set_date_range(start_date, end_date)
+
     # Функция поиска по символу в таблицы каталог
     def on_search_clicked(self):
         # текст из поля поиска
         text = self.ui_main_window.search_field.toPlainText()
-        self.proxy_model.setFilterRegExp(QRegExp(text, Qt.CaseInsensitive, QRegExp.RegExp))
+        self.proxy_model_catalog.setFilterRegExp(QRegExp(text, Qt.CaseInsensitive, QRegExp.RegExp))
 
     # Добавление кнопок в столбик кол-во в таблице "Чек"
     def add_delegate_check(self, model, table, number):
@@ -161,7 +206,6 @@ class MainWindow(QtWidgets.QMainWindow):
                 current_count = int(item_info['select_quantity'])
                 item_delegate.update_count_label(current_count)
 
-    # Функция для кнопок в таблице "Товары"
     def handle_button_click_check(self, button_type, row_number):
         type_button = button_type  # Определение типа кнопки
         number_row = row_number  # Определение строки
@@ -176,19 +220,23 @@ class MainWindow(QtWidgets.QMainWindow):
             return  # Если информация не найдена
 
         item_quantity = int(item_info['quantity'])
-        current_count = int(item_info['select_quantity'])
-        item_delegate.update_count_label(current_count)
+        item_select_quantity = int(item_info['select_quantity'])
+        item_price = int(item_info['price'])
+        item_delegate.update_count_label(item_select_quantity)
 
-        if type_button == "add" and current_count < item_quantity:
-            current_count = current_count + 1  # Увеличиваем счетчик
-            item_delegate.update_count_label(current_count)
+        if type_button == "add" and item_select_quantity < item_quantity:
+            item_select_quantity = item_select_quantity + 1  # Увеличиваем счетчик
+            item_delegate.update_count_label(item_select_quantity)
+            self.total_cost += int(item_price)
+            self.ui_main_window.total_label.setText(str(self.total_cost) + " руб.")  # Увеличение суммы покупки
 
-        elif type_button == "delete" and current_count > 1:
-                current_count = current_count - 1  # Уменьшаем счетчик
-                item_delegate.update_count_label(current_count)
+        elif type_button == "delete" and item_select_quantity > 1:
+            item_select_quantity = item_select_quantity - 1  # Уменьшаем счетчик
+            item_delegate.update_count_label(item_select_quantity)
+            self.total_cost -= int(item_price)
+            self.ui_main_window.total_label.setText(str(self.total_cost) + " руб.")  # Уменьшение суммы покупки
 
-        item_info['select_quantity'] = str(current_count)
-
+        item_info['select_quantity'] = str(item_select_quantity)
 
     # Функция добавления позиций в чек
     def add_item_to_check(self):
@@ -201,7 +249,7 @@ class MainWindow(QtWidgets.QMainWindow):
         # Получение индекса строки, выбранной пользователем в прокси-модели
         proxy_index = selected_indexes[0]
         # Преобразование индекса прокси-модели в индекс исходной модели
-        source_index = self.proxy_model.mapToSource(proxy_index)
+        source_index = self.proxy_model_catalog.mapToSource(proxy_index)
 
         # Получение данных из исходной модели
         item_number = self.catalog_model.item(source_index.row(), 0).text()  # №
@@ -236,7 +284,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui_main_window.confirm_button.setEnabled(True)
 
         self.total_cost += int(item_price)
-        self.ui_main_window.total_label.setText(str(self.total_cost) + " руб.")
+        self.ui_main_window.total_label.setText(str(self.total_cost) + " руб.") # Увеличение суммы покупки
 
     # Функция исключения позиций из чека
     def remove_item_from_check(self):
@@ -261,6 +309,7 @@ class MainWindow(QtWidgets.QMainWindow):
         item_anime = item_info['anime']
         item_price = item_info['price']
         item_quantity = item_info['quantity']
+        item_select_quantity = item_info['select_quantity']
 
         # Добавление элемента обратно в каталог
         new_row = self.catalog_model.rowCount()
@@ -282,11 +331,11 @@ class MainWindow(QtWidgets.QMainWindow):
         # Очистка выделения в таблице чека
         self.ui_main_window.chek_table.clearSelection()
 
-        self.total_cost -= int(item_price)
-        self.ui_main_window.total_label.setText(str(self.total_cost) + " руб.")
+        self.total_cost -= int(item_price) * int(item_select_quantity)
+        self.ui_main_window.total_label.setText(str(self.total_cost) + " руб.") # Уменьшение суммы покупки
 
     # Создание файла чека/продажа товара
-    def save_check_to_docx(self):
+    def save_check(self):
         # Создание нового документа
         doc = Document()
 
@@ -323,9 +372,11 @@ class MainWindow(QtWidgets.QMainWindow):
             item_name = item_info['name']  # Наименование
             item_delegate = self.ui_main_window.chek_table.indexWidget(self.check_model.index(row, 3))
             item_quantity = item_delegate.get_count()  #  количество
-            item_price = float(item_info['price'])  # Цена из словаря
+            item_price = int(item_info['price'])  # Цена из словаря
             item_total = item_quantity * item_price  # Общая сумма для товара
             total_sum += item_total
+
+            add_sales(item_name, item_info['anime'], item_price, item_info['quantity'], item_quantity)
 
             row_cells = table.add_row().cells
             row_cells[0].text = item_name
@@ -347,7 +398,6 @@ class MainWindow(QtWidgets.QMainWindow):
         doc.save(docx_file_path)
 
         # Конвертация в PDF
-        from docx2pdf import convert
         pdf_file_path = os.path.join(check_folder, f'чек_{purchase_date}.pdf')
         convert(docx_file_path, pdf_file_path)
 
@@ -355,7 +405,7 @@ class MainWindow(QtWidgets.QMainWindow):
         os.remove(docx_file_path)
 
         self.set_model_catalog()
-
+        self.item_info.clear()
         self.check_model.clear()
         self.set_model_check()
 
@@ -394,6 +444,10 @@ class MainWindow(QtWidgets.QMainWindow):
             self.ui_main_window.sales_button.setEnabled(False)
             self.ui_main_window.management_button.setEnabled(True)
 
+            self.ui_main_window.begin_dateEdit.setDate(datetime.now())
+            self.ui_main_window.end_dateEdit.setDate(datetime.now())
+            self.set_model_sale()
+
         if index == 2: # Открытие Управление
             self.ui_main_window.catalog_button.setEnabled(True)
             self.ui_main_window.sales_button.setEnabled(True)
@@ -414,8 +468,11 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # Открытие окна для отправки на печать
     def open_preview(self):
-        preview.setWindowModality(Qt.ApplicationModal)
-        preview.show()
+        # Создаем экземпляр Preview и передаем даты
+        self.preview_window = Preview(self.sale_model, self.proxy_model_sale)
+
+        self.preview_window.show()
+
 
     # Добавление кнопок в столбик действие в таблице "Товары"
     def add_delegate_management(self, model, table, number):
@@ -641,18 +698,195 @@ class CreateEditAnime(QtWidgets.QWidget):
         self.ui_create_edit_anime.name_textedit.clear() # Очистка поля
         self.close()
 
+
 class Preview(QtWidgets.QWidget):
-    def __init__(self):
+    def __init__(self, model, filter_model):
         super(Preview, self).__init__()
-        self.ui_preview =  Ui_preview_form()
+        self.ui_preview = Ui_preview_form()
         self.ui_preview.setupUi(self)
+
+        self.sale_model = model
+        self.filter_model = filter_model
+
+        self.start_date, self.end_date = self.get_sales_date_range()
+
+        self.ui_preview.save_button.clicked.connect(self.save_report)
+
+        # Отображение pdf файла
+        self.pdf_file_path = self.create_sales_report()
+
+        self.ui_preview.viewer.load(QtCore.QUrl.fromLocalFile(os.path.abspath(self.pdf_file_path)))
+
+    def get_sales_date_range(self):
+        # Переменные для минимальной и максимальной даты периода
+        min_date = None
+        max_date = None
+
+        # Перенос данных из отфильтрованной модели продаж
+        for row in range(self.filter_model.rowCount()):
+            source_row = self.filter_model.mapToSource(self.filter_model.index(row, 0)).row()
+            sale_date = self.sale_model.item(source_row, 5).text()
+            sale_date = sale_date.split()[0]
+            sale_date = datetime.strptime(sale_date, '%Y-%m-%d')  # Преобразование строки в дату
+
+            if min_date is None or sale_date < min_date:
+                min_date = sale_date
+            if max_date is None or sale_date > max_date:
+                max_date = sale_date
+
+        return min_date, max_date
+
+    def create_sales_report(self):
+        # Создание нового документа
+        doc = Document()
+
+        # Заголовок
+        heading = doc.add_heading('Отчет о продажах', level=1)
+        heading.alignment = 1
+
+        # Введение
+        doc.add_paragraph('Цель данного отчета - предоставить обзор продаж за указанный период.')
+        doc.add_paragraph('Период отчета: с {} по {}.'.format(
+            self.start_date.strftime('%Y-%m-%d'),
+            self.end_date.strftime('%Y-%m-%d')
+        ))
+
+        total_quantity = 0
+        total_sum = 0
+        item_sales = {}
+
+        # Перенос данных из отфильтрованной модели продаж
+        for row in range(self.filter_model.rowCount()):
+            source_row = self.filter_model.mapToSource(self.filter_model.index(row, 0)).row()
+            item_name = self.sale_model.item(source_row, 1).text()  # Наименование товара
+            anime_name = self.sale_model.item(source_row, 2).text()  # Наименование аниме
+            item_price = int(self.sale_model.item(source_row, 3).text())  # Цена
+            item_quantity = int(self.sale_model.item(source_row, 4).text())  # Количество
+
+            # Дата продажи
+            sale_date = self.sale_model.item(source_row, 5).text()
+            sale_date = sale_date.split()[0]
+            sale_date = datetime.strptime(sale_date, '%Y-%m-%d')  # Преобразование строки в дату
+
+            # Попадает ли дата продажи в отчетный период
+            if self.start_date <= sale_date <= self.end_date:
+                total_quantity += item_quantity
+                item_total = item_quantity * item_price
+                total_sum += item_total
+
+                # Объединение наименования товара и названия аниме
+                combined_name = f"{item_name} {anime_name}"
+
+                # Сохранение информации о продажах по товарам, суммируя количество и общую стоимость
+                if combined_name in item_sales:
+                    item_sales[combined_name]['quantity'] += item_quantity
+                    item_sales[combined_name]['total'] += item_total
+                else:
+                    item_sales[combined_name] = {
+                        'quantity': item_quantity,
+                        'total': item_total,
+                        'price': item_price
+                    }
+
+        # Добавление общих данных о продажах
+        doc.add_paragraph(f'Общее количество проданных товаров: {total_quantity}.')
+        doc.add_paragraph(f'Общая сумма продажи: {total_sum}.')
+
+        # Наиболее продаваемый товар
+        if item_sales:
+            best_selling_item = max(item_sales.items(), key=lambda x: x[1]['quantity'])
+            best_item_name = best_selling_item[0]
+            best_item_quantity = best_selling_item[1]['quantity']
+            best_item_share = (best_item_quantity / total_quantity * 100) if total_quantity > 0 else 0
+
+            doc.add_paragraph('Наиболее продаваемый товар:')
+            doc.add_paragraph(f'1. Наименование: {best_item_name};')
+            doc.add_paragraph(f'2. Количество проданного: {best_item_quantity};')
+            doc.add_paragraph(f'3. Доля в общем объеме продаж: {best_item_share:}%.')
+
+        # Аниме, товары с которым пользовались наибольшим спросом
+        anime_sales = {}
+        for row in range(self.filter_model.rowCount()):
+            source_row = self.filter_model.mapToSource(self.filter_model.index(row, 0)).row()
+            anime_name = self.sale_model.item(source_row, 2).text()  # Название аниме
+            item_quantity = int(self.sale_model.item(source_row, 4).text())  # Количество
+
+            if anime_name not in anime_sales:
+                anime_sales[anime_name] = 0
+            anime_sales[anime_name] += item_quantity
+
+        if anime_sales:
+            most_popular_anime = max(anime_sales.items(), key=lambda x: x[1])
+            anime_name = most_popular_anime[0]
+            anime_quantity = most_popular_anime[1]
+            anime_share = (anime_quantity / total_quantity * 100) if total_quantity > 0 else 0
+
+            doc.add_paragraph('Аниме, товары с которым пользовались наибольшим спросом:')
+            doc.add_paragraph(f'1. Наименование: {anime_name};')
+            doc.add_paragraph(f'2. Количество проданного: {anime_quantity};')
+            doc.add_paragraph(f'3. Доля в общем объеме продаж: {anime_share}%.')
+
+        # Продажи по товарам
+        doc.add_paragraph('Продажи по товарам:')
+        table = doc.add_table(rows=1, cols=4)
+        hdr_cells = table.rows[0].cells
+        hdr_cells[0].text = 'Наименование товара'
+        hdr_cells[1].text = 'Количество проданного'
+        hdr_cells[2].text = 'Цена за единицу'
+        hdr_cells[3].text = 'Общая сумма'
+
+        # Установка стиля таблицы
+        table.style = 'Table Grid'
+
+        # Заполнение таблицы данными о продажах
+        for item_name, sales_info in item_sales.items():
+            row_cells = table.add_row().cells
+            row_cells[0].text = item_name  # Объединенное наименование товара и аниме
+            row_cells[1].text = str(sales_info['quantity'])  # Количество
+            row_cells[2].text = str(sales_info['price'])  # Цена
+            row_cells[3].text = str(sales_info['total'])  # Общая
+
+        # Добавление итоговой суммы в таблицу
+        total_row_cells = table.add_row().cells
+        total_row_cells[0].text = 'Итого'
+        total_row_cells[1].text = str(total_quantity)  # Количество
+        total_row_cells[2].text = ''
+        total_row_cells[3].text = str(total_sum)  # Общая сумма
+
+        # Cоздание пути для файла
+        start_date = str(self.start_date).split()[0]
+        end_date = str(self.end_date).split()[0]
+        report_file_path = f"resources/отчёт_по_продажам_с_{start_date}_по_{end_date}.docx"
+
+        if report_file_path:
+            doc.save(report_file_path)
+
+            # Конвертация в PDF
+            pdf_file_path = report_file_path.replace('.docx', '.pdf')
+            convert(report_file_path, pdf_file_path)
+
+            # Удаление .docx файла после конвертации
+            if os.path.exists(report_file_path):
+                os.remove(report_file_path)
+
+            return pdf_file_path
+
+    def save_report(self):
+        # Сохранение существующего PDF файла в новое место
+        options = QFileDialog.Options()
+        report_file_path, _ = QFileDialog.getSaveFileName(self, "Сохранить отчет о продажах",
+                                                          self.pdf_file_path, "PDF файлы (*.pdf);;Все файлы (*)",
+                                                          options=options)
+
+        if report_file_path:
+            # Копирование файла по новому пути
+            os.rename(self.pdf_file_path, report_file_path)
+            self.close()
+
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])
     application = MainWindow()
     application.show()
-
-
-    preview = Preview()
 
     sys.exit(app.exec())

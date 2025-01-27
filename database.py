@@ -90,7 +90,6 @@ def load_data_from_db(model, name_table):
             model.appendRow([
                 QStandardItem(str(index + 1)),  # Номер
                 QStandardItem(row[0]),  # Наименование
-                QStandardItem()  # Ячейка для кнопок или других действий
             ])
 
     elif name_table == 'product_table':
@@ -109,6 +108,25 @@ def load_data_from_db(model, name_table):
                 QStandardItem(row[1]),  # Наименование аниме
                 QStandardItem(str(row[2])),  # Цена
                 QStandardItem(str(row[3]))  # Количество
+            ])
+
+    elif name_table == 'sale_table':
+        # Выполнение SQL запроса для получения данных о продажах
+        model.clear()
+        cursor.execute("""SELECT s.id_sale, p.p_name, a.a_name, s.s_count, s.s_price, s.s_date
+                          FROM sale s
+                          JOIN product p ON s.s_product = p.id_product
+                          JOIN anime a ON p.p_anime = a.id_anime;""")
+        rows = cursor.fetchall()
+
+        for index, row in enumerate(rows):
+            model.appendRow([
+                QStandardItem(str(index + 1)),
+                QStandardItem(row[1]),  # Наименование продукта
+                QStandardItem(row[2]),  # Наименование аниме
+                QStandardItem(str(row[4])),  # Количество
+                QStandardItem(str(row[3])),  # Цена
+                QStandardItem(str(row[5]))  # Дата продажи
             ])
 
     cursor.close()
@@ -162,6 +180,43 @@ def add_to_database_anime(name):
         cursor.close()
         conn.close()
 
+def add_sales(item_name, item_anime, item_price, item_quantity, item_select_quantity):
+    cursor, conn = connect_db()
+
+    #ID товара
+    cursor.execute(
+        "SELECT id_product FROM product WHERE p_name = %s AND p_anime = (SELECT id_anime FROM anime WHERE a_name = %s) AND p_price = %s AND p_count = %s;",
+        (item_name, item_anime, item_price, item_quantity))
+    product_id = cursor.fetchone()
+
+    if product_id is None:
+        cursor.close()
+        conn.close()
+        return
+
+    product_id = product_id[0]
+
+    #Текущее время для записи в s_date
+    from datetime import datetime
+    sale_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    # Вставка данных о продаже в таблицу sale
+    cursor.execute("""
+        INSERT INTO sale (s_product, s_count, s_price, s_date) 
+        VALUES (%s, %s, %s, %s);
+    """, (product_id, item_select_quantity, item_price, sale_date))
+
+    # Уменьшение количества товара в таблице product
+    cursor.execute("""
+        UPDATE product 
+        SET p_count = p_count - %s 
+        WHERE id_product = %s;
+    """, (item_select_quantity, product_id))
+
+    conn.commit()
+    cursor.close()
+    conn.close()
+
 def delete_anime_by_name(anime_name):
     cursor, conn = connect_db()
 
@@ -178,10 +233,10 @@ def delete_product(name, anime, price, count):
     anime_id = cursor.fetchone()
     anime_id = anime_id[0]
 
-    cursor.execute("""
-            DELETE FROM product 
-            WHERE p_name = %s AND p_anime = %s AND p_price = %s AND p_count = %s
-        """, (name, anime_id, price, count))
+    cursor.execute(
+        """DELETE FROM product 
+            WHERE p_name = %s AND p_anime = (SELECT id_anime FROM anime WHERE a_name = %s) AND p_price = %s AND p_count = %s;""",
+        (name, anime, price, count))
     conn.commit()
 
     cursor.close()

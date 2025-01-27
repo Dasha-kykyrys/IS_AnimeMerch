@@ -9,7 +9,6 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets, QtWebEngineWidgets
-from PyQt5.QtCore import QSortFilterProxyModel
 from PyQt5.QtWidgets import QStackedWidget, QWidget
 
 
@@ -865,6 +864,9 @@ class ItemDelegateCheck(QWidget):
 
     def update_count_label(self, count):
         self.count_label.setText(str(count))
+
+    def get_count(self):
+        return int(self.count_label.text())
 
 class ItemDelegateData(QWidget):
     button_clicked = QtCore.pyqtSignal(str, int)  # Создаем сигнал для передачи типа кнопки и номера строки

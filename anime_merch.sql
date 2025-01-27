@@ -101,7 +101,7 @@ CREATE TABLE public.sale (
     s_product integer NOT NULL,
     s_count integer NOT NULL,
     s_price integer NOT NULL,
-    s_date date NOT NULL
+    s_date timestamp without time zone NOT NULL
 );
 
 
@@ -167,11 +167,10 @@ COPY public.anime (id_anime, a_name) FROM stdin;
 --
 
 COPY public.product (id_product, p_name, p_anime, p_price, p_count) FROM stdin;
-9	Плакат А4	41	120	30
-10	Значок 56мм	45	60	100
-11	Значок 56мм	41	65	50
-12	Значок 36мм	54	40	30
-13	Плакат А5	54	90	10
+13	Плакат А5	54	90	8
+11	Значок 56мм	41	65	49
+10	Значок 56мм	45	60	92
+9	Плакат А4	41	120	21
 \.
 
 
@@ -180,6 +179,11 @@ COPY public.product (id_product, p_name, p_anime, p_price, p_count) FROM stdin;
 --
 
 COPY public.sale (id_sale, s_product, s_count, s_price, s_date) FROM stdin;
+5	11	1	65	2025-01-26 21:26:31
+6	9	3	120	2025-01-26 21:48:41
+7	10	1	60	2025-01-26 21:48:41
+8	10	5	60	2025-01-26 23:45:10
+9	9	6	120	2025-01-27 01:41:06
 \.
 
 
@@ -201,7 +205,7 @@ SELECT pg_catalog.setval('public.product_id_product_seq', 13, true);
 -- Name: sale_id_sale_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.sale_id_sale_seq', 1, false);
+SELECT pg_catalog.setval('public.sale_id_sale_seq', 9, true);
 
 
 --
