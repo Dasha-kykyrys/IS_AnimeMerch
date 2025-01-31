@@ -1,16 +1,24 @@
-﻿from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtCore import Qt, QSortFilterProxyModel, QRegExp, QDate
-from PyQt5.QtGui import QStandardItemModel, QStandardItem
+﻿import os
+import re
 import sys
+from datetime import datetime
+import fitz
+from PIL import Image
+from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtCore import Qt, QSortFilterProxyModel, QRegExp, QDate
+from PyQt5.QtGui import QPainter, QImage
+from PyQt5.QtGui import QStandardItemModel, QStandardItem
+from PyQt5.QtPrintSupport import QPrinter, QPrintDialog
 from PyQt5.QtWidgets import QFileDialog
-from GUI import Ui_MainWindow, Ui_CreateEditAnime_form, Ui_CreateEditProduct_form, Ui_preview_form, ItemDelegateData, ItemDelegateCheck
+from PyQt5.QtWidgets import QMessageBox
+from docx import Document
+from docx2pdf import convert
+
+from GUI import Ui_MainWindow, Ui_CreateEditAnime_form, Ui_CreateEditProduct_form, Ui_preview_form, ItemDelegateData, \
+    ItemDelegateCheck
 from database import load_data_from_db, add_to_database_product, add_to_database_anime, delete_anime_by_name, \
     delete_product, update_anime, update_product, save_database, add_sales
-import re
-from docx import Document
-from datetime import datetime
-import os
-from docx2pdf import convert
+
 
 class FilterOrder(QSortFilterProxyModel):
     def __init__(self, *args, start_date=None, end_date=None, **kwargs):
@@ -64,11 +72,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui_main_window.animetable_button.clicked.connect(self.open_anime_table)
         self.ui_main_window.productstable_button.clicked.connect(self.open_product_table)
 
-        #открытие окон
-        self.ui_main_window.print_sales_button.clicked.connect(self.open_preview)
-        self.ui_main_window.print_button.clicked.connect(self.open_preview)
-        self.ui_main_window.creat_button.clicked.connect(self.open_create)
-
         # Модель таблицы Каталог
         self.catalog_model = QStandardItemModel(0, 5, self)  # 5 столбцов
         self.set_model_catalog()
@@ -114,6 +117,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui_main_window.remove_button.clicked.connect(self.remove_item_from_check) # Кнопка удаления товара из чека
 
         self.ui_main_window.confirm_button.clicked.connect(self.save_check) # Кнопка создания файла чека
+
+        #открытие окон
+        self.ui_main_window.print_sales_button.clicked.connect(lambda: self.open_preview('sales'))
+        self.ui_main_window.print_button.clicked.connect(lambda: self.open_preview('stock'))
+        self.ui_main_window.creat_button.clicked.connect(self.open_create)
 
     # Настройки для модели таблицы "Чек"
     def set_model_check(self):
@@ -283,12 +291,15 @@ class MainWindow(QtWidgets.QMainWindow):
         self.ui_main_window.catalog_table.clearSelection()
         self.ui_main_window.confirm_button.setEnabled(True)
 
+        if self.catalog_model.rowCount() == 0:
+            self.ui_main_window.add_button.setEnabled(False)
+
         self.total_cost += int(item_price)
         self.ui_main_window.total_label.setText(str(self.total_cost) + " руб.") # Увеличение суммы покупки
 
     # Функция исключения позиций из чека
     def remove_item_from_check(self):
-        # Получаем выделенные индексы в таблице чека
+        # Получение выделенного индекса в таблице чека
         selected_indexes = self.ui_main_window.chek_table.selectedIndexes()
 
         if not selected_indexes:
@@ -322,6 +333,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         # Удаление строки из чека
         self.check_model.removeRow(selected_row)
+
+        if self.catalog_model.rowCount() == 1:
+            self.ui_main_window.add_button.setEnabled(True)
 
         # Удаление информации о товаре из словаря
         del self.item_info[item_number]
@@ -408,6 +422,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.item_info.clear()
         self.check_model.clear()
         self.set_model_check()
+        self.total_cost = 0
+        self.ui_main_window.total_label.setText(str(self.total_cost) + " руб.")
 
     # Открытие окна для редактирования аниме
     def update_create_edit_anime(self, press_edit, current_name):
@@ -467,12 +483,13 @@ class MainWindow(QtWidgets.QMainWindow):
             self.create_edit_product.show()
 
     # Открытие окна для отправки на печать
-    def open_preview(self):
-        # Создаем экземпляр Preview и передаем даты
-        self.preview_window = Preview(self.sale_model, self.proxy_model_sale)
+    def open_preview(self, report_type):
+        if report_type == 'sales':
+            self.preview_window = Preview(self.sale_model, self.proxy_model_sale, report_type)
+        else:
+            self.preview_window = Preview(self.product_model, None, report_type)
 
         self.preview_window.show()
-
 
     # Добавление кнопок в столбик действие в таблице "Товары"
     def add_delegate_management(self, model, table, number):
@@ -556,8 +573,53 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # Функция сохраняющая БД в sql файл после закрытия программы
     def closeEvent(self, event):
-        save_database()
-        event.accept()
+            event.accept()
+            save_database()
+
+    def keyPressEvent(self, event):
+        current_index = self.ui_main_window.stacked_widget.currentIndex()
+
+        reply = QMessageBox(self)
+        reply.setWindowTitle("Выход")
+        reply.setIcon(QMessageBox.Question)
+
+        button_yes = reply.addButton("Да", QMessageBox.YesRole)
+        reply.addButton("Нет", QMessageBox.RejectRole)
+        reply.setDefaultButton(button_yes)
+
+        if event.key() == Qt.Key_Escape:
+            reply.setText("Вы действительно хотите выйти?")
+            reply.exec_()
+
+            if reply.clickedButton() == button_yes:
+                save_database()
+                self.close()
+
+        if current_index == 2:
+            if event.key() == Qt.Key_N and event.modifiers() == Qt.ControlModifier:
+                self.open_create()
+            elif event.key() == Qt.Key_E and event.modifiers() == Qt.ControlModifier:
+                # Получение выделенного индекса в таблице
+                selected_indexes = self.ui_main_window.management_table.selectedIndexes()
+                if not selected_indexes:
+                    return
+                selected_row = selected_indexes[0].row()
+                self.handle_button_click_management('edit', selected_row)
+
+            elif event.key() == Qt.Key_Delete:
+                # Получение выделенного индекса в таблице
+                selected_indexes = self.ui_main_window.management_table.selectedIndexes()
+                if not selected_indexes:
+                    return
+                selected_row = selected_indexes[0].row()
+
+                reply.setText("Вы действительно хотите удалить?")
+                reply.exec_()
+
+                if reply.clickedButton() == button_yes:
+                    self.handle_button_click_management('delet', selected_row)
+
+        super(MainWindow, self).keyPressEvent(event)
 
 class CreateEditProduct(QtWidgets.QWidget):
     def __init__(self, main_window, product_model, add_delegate):
@@ -578,11 +640,21 @@ class CreateEditProduct(QtWidgets.QWidget):
         self.ui_create_edit_product.ok_button.clicked.connect(self.save_product) # Кнопка подтверждения
         self.ui_create_edit_product.cancel_button.clicked.connect(self.close_create_edit_product) # Кнопка отмены
 
+    def keyPressEvent(self, event):
+
+        if event.key() == Qt.Key_Escape:
+            self.close()
+
+        elif event.key() == Qt.Key_Return:
+            self.save_product()
+
+        super(CreateEditProduct, self).keyPressEvent(event)
+
     def save_product(self):
-        name = self.ui_create_edit_product.name_textedit.toPlainText().strip()  # Наименование
-        anime = self.ui_create_edit_product.anime_textedit.toPlainText().strip()  # Аниме
-        price = self.ui_create_edit_product.price_textedit.toPlainText().strip()  # Цена
-        count = self.ui_create_edit_product.count_textedit.toPlainText().strip()  # Количество
+        name = self.ui_create_edit_product.name_textedit.text().strip()  # Наименование
+        anime = self.ui_create_edit_product.anime_textedit.text().strip()  # Аниме
+        price = self.ui_create_edit_product.price_textedit.text().strip()  # Цена
+        count = self.ui_create_edit_product.count_textedit.text().strip()  # Количество
 
         def is_valid_input(value):
             # Проверка, что строка состоит только из букв и цифр
@@ -620,7 +692,6 @@ class CreateEditProduct(QtWidgets.QWidget):
                 self.press_edit = False
 
         else:
-            print('New')
             # Проверка входных данных и добавление новой записи
             if not is_valid_input(name) or not is_valid_input(anime) or not is_valid_number(price) or not is_valid_number(
                     count) or not add_to_database_product(name, anime, price, count):
@@ -668,8 +739,18 @@ class CreateEditAnime(QtWidgets.QWidget):
         self.ui_create_edit_anime.ok_button.clicked.connect(self.save_anime) # Кнопка подтверждения
         self.ui_create_edit_anime.cancel_button.clicked.connect(self.close_create_edit_anime) # Кнопка отмены
 
+    def keyPressEvent(self, event):
+
+        if event.key() == Qt.Key_Escape:
+            self.close()
+
+        elif event.key() == Qt.Key_Return:
+            self.save_anime()
+
+        super(CreateEditAnime, self).keyPressEvent(event)
+
     def save_anime(self):
-        name = self.ui_create_edit_anime.name_textedit.toPlainText().strip()  # Наименование
+        name = self.ui_create_edit_anime.name_textedit.text().strip()  # Наименование
 
         def is_valid_input(value):
             # Проверка, что строка состоит только из букв и цифр
@@ -698,24 +779,84 @@ class CreateEditAnime(QtWidgets.QWidget):
         self.ui_create_edit_anime.name_textedit.clear() # Очистка поля
         self.close()
 
-
 class Preview(QtWidgets.QWidget):
-    def __init__(self, model, filter_model):
+    def __init__(self, model, filter_model, report_type):
         super(Preview, self).__init__()
         self.ui_preview = Ui_preview_form()
         self.ui_preview.setupUi(self)
 
-        self.sale_model = model
+        self.model = model
         self.filter_model = filter_model
+        self.report_type = report_type
 
-        self.start_date, self.end_date = self.get_sales_date_range()
+        if self.report_type == 'sales':
+            self.start_date, self.end_date = self.get_sales_date_range()
 
         self.ui_preview.save_button.clicked.connect(self.save_report)
 
         # Отображение pdf файла
-        self.pdf_file_path = self.create_sales_report()
-
+        self.pdf_file_path = self.create_report()
         self.ui_preview.viewer.load(QtCore.QUrl.fromLocalFile(os.path.abspath(self.pdf_file_path)))
+
+        self.ui_preview.sendtoprint_button.clicked.connect(self.print_report)
+
+    @staticmethod
+    def pdf_to_images(pdf_path, dpi):
+        doc = fitz.open(pdf_path)
+        images = []
+        for page_num in range(len(doc)):
+            page = doc.load_page(page_num)
+            pix = page.get_pixmap(matrix=fitz.Matrix(dpi / 72, dpi / 72))
+            img = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
+            images.append(img)
+        return images
+
+    def print_report(self):
+        # Сохранение отчета перед печатью
+        report_file_path = self.save_report()
+
+        # Если пользователь отменил сохранение, выход из функции
+        if not report_file_path:
+            return
+
+        # Создание объекта принтера
+        printer = QPrinter(QPrinter.HighResolution)
+        printer.setPageSize(QPrinter.A4)
+
+        # Открытие диалога печати
+        print_dialog = QPrintDialog(printer, self)
+        if print_dialog.exec_() == QPrintDialog.Accepted:
+            painter = None  # Инициализация переменной painter
+            try:
+                # PDF в изображения
+                images = self.pdf_to_images(report_file_path, printer.resolution())
+
+                #QPainter для печати
+                painter = QPainter(printer)
+
+                # Печать каждого изображения
+                for i, img in enumerate(images):
+                    if i > 0:
+                        printer.newPage()  # Новая страница для всех кроме первой
+
+                    # PIL.Image в QImage
+                    qimage = QImage(
+                        img.tobytes(),
+                        img.size[0],
+                        img.size[1],
+                        QImage.Format_RGB888
+                    )
+
+                    # Рисование изображения на принтере
+                    painter.drawImage(printer.pageRect(), qimage)
+
+            except Exception as e:
+                # Обработка ошибок
+                QMessageBox.critical(self, "Ошибка", f"Не удалось распечатать документ: {str(e)}")
+            finally:
+                # Завершение печати, если painter был создан
+                if painter is not None:
+                    painter.end()
 
     def get_sales_date_range(self):
         # Переменные для минимальной и максимальной даты периода
@@ -725,7 +866,7 @@ class Preview(QtWidgets.QWidget):
         # Перенос данных из отфильтрованной модели продаж
         for row in range(self.filter_model.rowCount()):
             source_row = self.filter_model.mapToSource(self.filter_model.index(row, 0)).row()
-            sale_date = self.sale_model.item(source_row, 5).text()
+            sale_date = self.model.item(source_row, 5).text()
             sale_date = sale_date.split()[0]
             sale_date = datetime.strptime(sale_date, '%Y-%m-%d')  # Преобразование строки в дату
 
@@ -735,6 +876,13 @@ class Preview(QtWidgets.QWidget):
                 max_date = sale_date
 
         return min_date, max_date
+
+    def create_report(self):
+        # В зависимости от типа отчета, вызывается соответствующий метод
+        if self.report_type == 'sales':
+            return self.create_sales_report()
+        else:
+            return self.create_stock_report()
 
     def create_sales_report(self):
         # Создание нового документа
@@ -758,13 +906,13 @@ class Preview(QtWidgets.QWidget):
         # Перенос данных из отфильтрованной модели продаж
         for row in range(self.filter_model.rowCount()):
             source_row = self.filter_model.mapToSource(self.filter_model.index(row, 0)).row()
-            item_name = self.sale_model.item(source_row, 1).text()  # Наименование товара
-            anime_name = self.sale_model.item(source_row, 2).text()  # Наименование аниме
-            item_price = int(self.sale_model.item(source_row, 3).text())  # Цена
-            item_quantity = int(self.sale_model.item(source_row, 4).text())  # Количество
+            item_name = self.model.item(source_row, 1).text()  # Наименование товара
+            anime_name = self.model.item(source_row, 2).text()  # Наименование аниме
+            item_price = int(self.model.item(source_row, 3).text())  # Цена
+            item_quantity = int(self.model.item(source_row, 4).text())  # Количество
 
             # Дата продажи
-            sale_date = self.sale_model.item(source_row, 5).text()
+            sale_date = self.model.item(source_row, 5).text()
             sale_date = sale_date.split()[0]
             sale_date = datetime.strptime(sale_date, '%Y-%m-%d')  # Преобразование строки в дату
 
@@ -808,8 +956,8 @@ class Preview(QtWidgets.QWidget):
         anime_sales = {}
         for row in range(self.filter_model.rowCount()):
             source_row = self.filter_model.mapToSource(self.filter_model.index(row, 0)).row()
-            anime_name = self.sale_model.item(source_row, 2).text()  # Название аниме
-            item_quantity = int(self.sale_model.item(source_row, 4).text())  # Количество
+            anime_name = self.model.item(source_row, 2).text()  # Название аниме
+            item_quantity = int(self.model.item(source_row, 4).text())  # Количество
 
             if anime_name not in anime_sales:
                 anime_sales[anime_name] = 0
@@ -853,10 +1001,87 @@ class Preview(QtWidgets.QWidget):
         total_row_cells[2].text = ''
         total_row_cells[3].text = str(total_sum)  # Общая сумма
 
+        return self.save_and_convert_doc(doc, 'sales')
+
+    def create_stock_report(self):
+        # Создание нового документа
+        doc = Document()
+
+        # Заголовок
+        heading = doc.add_heading('Отчет об остатках', level=1)
+        heading.alignment = 1
+
+        # Введение
+        doc.add_paragraph('Цель данного отчета - предоставить обзор остатков товаров на складе.')
+        doc.add_paragraph('Дата отчета: {}.'.format(datetime.now().strftime('%Y-%m-%d')))
+
+        total_quantity = 0
+        total_sum = 0
+        item_stocks = {}
+
+        # Перенос данных из модели продуктов
+        for row in range(self.model.rowCount()):
+            item_name = self.model.item(row, 1).text()  # Наименование товара
+            anime_name = self.model.item(row, 2).text()  # Название аниме
+            item_price = int(self.model.item(row, 3).text())  # Цена
+            item_quantity = int(self.model.item(row, 4).text())  # Количество
+
+            # Объединение названия товара и названия аниме
+            combined_name = f"{item_name} {anime_name}"
+
+            # Суммирование остатков
+            total_quantity += item_quantity
+            item_total = item_quantity * item_price
+            total_sum += item_total
+
+            # Сохранение информации об остатках по товарам
+            item_stocks[combined_name] = {
+                'quantity': item_quantity,
+                'price': item_price,
+                'total': item_total
+            }
+
+        # Добавление общих данных об остатках
+        doc.add_paragraph(f'Общее количество оставшихся товаров: {total_quantity}.')
+        doc.add_paragraph(f'Общая сумма остатков: {total_sum}.')
+
+        # Остатки по товарам
+        doc.add_paragraph('Остатки по товарам:')
+        table = doc.add_table(rows=1, cols=4)
+        hdr_cells = table.rows[0].cells
+        hdr_cells[0].text = 'Наименование товара'
+        hdr_cells[1].text = 'Количество'
+        hdr_cells[2].text = 'Цена за единицу'
+        hdr_cells[3].text = 'Общая сумма'
+
+        # Установка стиля таблицы
+        table.style = 'Table Grid'
+
+        # Заполнение таблицы данными об остатках
+        for combined_name, stock_info in item_stocks.items():
+            row_cells = table.add_row().cells
+            row_cells[0].text = combined_name  # Объединенное наименование товара и аниме
+            row_cells[1].text = str(stock_info['quantity'])  # Количество
+            row_cells[2].text = str(stock_info['price'])  # Цена
+            row_cells[3].text = str(stock_info['total'])  # Общая сумма
+
+        # Добавление итоговой суммы в таблицу
+        total_row_cells = table.add_row().cells
+        total_row_cells[0].text = 'Итого'
+        total_row_cells[1].text = str(total_quantity)  # Количество
+        total_row_cells[2].text = ''
+        total_row_cells[3].text = str(total_sum)  # Общая сумма
+
+        return self.save_and_convert_doc(doc, 'stock')
+
+    def save_and_convert_doc(self, doc, report_type):
         # Cоздание пути для файла
-        start_date = str(self.start_date).split()[0]
-        end_date = str(self.end_date).split()[0]
-        report_file_path = f"resources/отчёт_по_продажам_с_{start_date}_по_{end_date}.docx"
+        if report_type == "sales":
+            start_date = str(self.start_date).split()[0]
+            end_date = str(self.end_date).split()[0]
+            report_file_path = f"resources/отчёт_о_продажах_с_{start_date}_по_{end_date}.docx"
+        else:
+            report_file_path = f"resources/отчёт_об_остатках_{datetime.now().strftime('%Y-%m-%d')}.docx"
 
         if report_file_path:
             doc.save(report_file_path)
@@ -872,17 +1097,32 @@ class Preview(QtWidgets.QWidget):
             return pdf_file_path
 
     def save_report(self):
+        # Получение путь к папке "Документы" текущего пользователя
+        documents_path = os.path.expanduser("~/Documents")
+
         # Сохранение существующего PDF файла в новое место
         options = QFileDialog.Options()
-        report_file_path, _ = QFileDialog.getSaveFileName(self, "Сохранить отчет о продажах",
-                                                          self.pdf_file_path, "PDF файлы (*.pdf);;Все файлы (*)",
+        report_file_path, _ = QFileDialog.getSaveFileName(self, "Сохранить отчет",
+                                                          os.path.join(documents_path,
+                                                                       os.path.basename(self.pdf_file_path)),
+                                                          "PDF файлы (*.pdf);;Все файлы (*)",
                                                           options=options)
 
         if report_file_path:
-            # Копирование файла по новому пути
+            # Если файл по новому пути уже существует, удаление его
+            if os.path.exists(report_file_path):
+                os.remove(report_file_path)
+
+            # Копирование файла по новому пути (перезапись, если файл существует)
             os.rename(self.pdf_file_path, report_file_path)
             self.close()
+            return report_file_path
+        else:
+            return None  # Возвращаем None, если сохранение было отменено
 
+    def closeEvent(self, event):
+        if os.path.exists(self.pdf_file_path):
+            os.remove(self.pdf_file_path)
 
 if __name__ == "__main__":
     app = QtWidgets.QApplication([])

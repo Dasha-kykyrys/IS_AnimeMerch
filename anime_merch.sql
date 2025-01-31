@@ -159,6 +159,8 @@ COPY public.anime (id_anime, a_name) FROM stdin;
 45	Тетрадь смерти
 50	Туалетный мальчик Ханако
 54	Волейбол
+56	Великий из бродячих псов
+58	Одинокий рокер
 \.
 
 
@@ -168,9 +170,8 @@ COPY public.anime (id_anime, a_name) FROM stdin;
 
 COPY public.product (id_product, p_name, p_anime, p_price, p_count) FROM stdin;
 13	Плакат А5	54	90	8
-11	Значок 56мм	41	65	49
-10	Значок 56мм	45	60	92
-9	Плакат А4	41	120	21
+11	Значок 56мм	41	65	45
+10	Значок 56мм	45	60	85
 \.
 
 
@@ -180,10 +181,10 @@ COPY public.product (id_product, p_name, p_anime, p_price, p_count) FROM stdin;
 
 COPY public.sale (id_sale, s_product, s_count, s_price, s_date) FROM stdin;
 5	11	1	65	2025-01-26 21:26:31
-6	9	3	120	2025-01-26 21:48:41
 7	10	1	60	2025-01-26 21:48:41
 8	10	5	60	2025-01-26 23:45:10
-9	9	6	120	2025-01-27 01:41:06
+10	11	4	65	2025-01-27 16:31:13
+11	10	7	60	2025-01-27 16:31:14
 \.
 
 
@@ -191,21 +192,21 @@ COPY public.sale (id_sale, s_product, s_count, s_price, s_date) FROM stdin;
 -- Name: anime_id_anime_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.anime_id_anime_seq', 54, true);
+SELECT pg_catalog.setval('public.anime_id_anime_seq', 58, true);
 
 
 --
 -- Name: product_id_product_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.product_id_product_seq', 13, true);
+SELECT pg_catalog.setval('public.product_id_product_seq', 14, true);
 
 
 --
 -- Name: sale_id_sale_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
 --
 
-SELECT pg_catalog.setval('public.sale_id_sale_seq', 9, true);
+SELECT pg_catalog.setval('public.sale_id_sale_seq', 11, true);
 
 
 --

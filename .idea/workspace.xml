@@ -10,8 +10,6 @@
       <change beforePath="$PROJECT_DIR$/anime_merch.sql" beforeDir="false" afterPath="$PROJECT_DIR$/anime_merch.sql" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/database.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/resources/pattern/pattern_product_balance_report.docx" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/resources/pattern/pattern_report_on_the_sale_of_goods.docx" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -44,7 +42,7 @@
   "keyToString": {
     "Python.AddButtonInTable.executor": "Run",
     "Python.Delet.executor": "Run",
-    "Python.GUI.executor": "Run",
+    "Python.GUI.executor": "Debug",
     "Python.MainWindow.executor": "Run",
     "Python.Test.executor": "Run",
     "Python.TestBD2.executor": "Run",
@@ -59,10 +57,11 @@
     "Python.main.executor": "Debug",
     "Python.sales.executor": "Run",
     "Python.test.executor": "Debug",
+    "Python.р.executor": "Run",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "git-widget-placeholder": "master",
     "last_opened_file_path": "C:/Users/user/OneDrive/Desktop/IS_AnimeMerch",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
+    "settings.editor.selected.configurable": "reference.settingsdialog.IDE.editor.colors.General"
   }
 }]]></component>
   <component name="RecentsManager">
@@ -70,35 +69,6 @@
       <recent name="C:\Users\user\OneDrive\Desktop\IS_AnimeMerch\Потом удалить" />
       <recent name="C:\Users\user\OneDrive\Desktop\IS_AnimeMerch" />
     </key>
-  </component>
-  <component name="RunManager">
-    <configuration name="GUI" type="PythonConfigurationType" factoryName="Python" temporary="true" nameIsGenerated="true">
-      <module name="IS_AnimeMerch" />
-      <option name="ENV_FILES" value="" />
-      <option name="INTERPRETER_OPTIONS" value="" />
-      <option name="PARENT_ENVS" value="true" />
-      <envs>
-        <env name="PYTHONUNBUFFERED" value="1" />
-      </envs>
-      <option name="SDK_HOME" value="" />
-      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
-      <option name="IS_MODULE_SDK" value="true" />
-      <option name="ADD_CONTENT_ROOTS" value="true" />
-      <option name="ADD_SOURCE_ROOTS" value="true" />
-      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/GUI.py" />
-      <option name="PARAMETERS" value="" />
-      <option name="SHOW_COMMAND_LINE" value="false" />
-      <option name="EMULATE_TERMINAL" value="false" />
-      <option name="MODULE_MODE" value="false" />
-      <option name="REDIRECT_INPUT" value="false" />
-      <option name="INPUT_FILE" value="" />
-      <method v="2" />
-    </configuration>
-    <recent_temporary>
-      <list>
-        <item itemvalue="Python.GUI" />
-      </list>
-    </recent_temporary>
   </component>
   <component name="SharedIndexes">
     <attachedChunks>

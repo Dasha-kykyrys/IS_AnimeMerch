@@ -27,7 +27,7 @@ def restore_database(user, password, dbname, host, port):
     )
 
 def save_database():
-    pg_dump_path = r'C:\Program Files\PostgreSQL\17\bin\pg_dump.exe'  # Замените на ваш путь
+    pg_dump_path = r'C:\Program Files\PostgreSQL\17\bin\pg_dump.exe'
     backup_file_path = 'anime_merch.sql'
     os.environ['PGPASSWORD'] = info_password
 
@@ -85,7 +85,7 @@ def load_data_from_db(model, name_table):
         rows = cursor.fetchall()
 
         model.clear()
-        # Добавьте данные в модель
+        # Добавление данных в модель
         for index, row in enumerate(rows):
             model.appendRow([
                 QStandardItem(str(index + 1)),  # Номер
@@ -100,7 +100,7 @@ def load_data_from_db(model, name_table):
                         JOIN anime a ON p.p_anime = a.id_anime;""")
         rows = cursor.fetchall()
 
-        # Добавьте данные в модель
+        # Добавление данных в модель
         for index, row in enumerate(rows):
             model.appendRow([
                 QStandardItem(str(index + 1)),  # Номер
@@ -134,9 +134,11 @@ def load_data_from_db(model, name_table):
 
 def add_to_database_product(name, anime, price, count):
     if name and anime and price and count:  # Проверка, что все поля заполнены
-        cursor, conn = connect_db()
+        price = int(price)
+        count = int(count)
 
-        # Получаем ID аниме
+        cursor, conn = connect_db()
+        # Получение ID аниме
         cursor.execute("SELECT id_anime FROM anime WHERE a_name = %s;", (anime,))
         anime_id = cursor.fetchone()
 
@@ -145,10 +147,8 @@ def add_to_database_product(name, anime, price, count):
             conn.close()
             return False
 
-        # Извлекаем ID из кортежа
+        # Извлечение ID из кортежа
         anime_id = anime_id[0]
-        price = int(price)
-        count = int(count)
 
         # SQL-запрос для вставки данных
         cursor.execute("""
@@ -185,7 +185,8 @@ def add_sales(item_name, item_anime, item_price, item_quantity, item_select_quan
 
     #ID товара
     cursor.execute(
-        "SELECT id_product FROM product WHERE p_name = %s AND p_anime = (SELECT id_anime FROM anime WHERE a_name = %s) AND p_price = %s AND p_count = %s;",
+        "SELECT id_product FROM product WHERE p_name = %s AND "
+        "p_anime = (SELECT id_anime FROM anime WHERE a_name = %s) AND p_price = %s AND p_count = %s;",
         (item_name, item_anime, item_price, item_quantity))
     product_id = cursor.fetchone()
 
