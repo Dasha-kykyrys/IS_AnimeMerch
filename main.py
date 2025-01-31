@@ -827,36 +827,31 @@ class Preview(QtWidgets.QWidget):
         print_dialog = QPrintDialog(printer, self)
         if print_dialog.exec_() == QPrintDialog.Accepted:
             painter = None  # Инициализация переменной painter
-            try:
-                # PDF в изображения
-                images = self.pdf_to_images(report_file_path, printer.resolution())
 
-                #QPainter для печати
-                painter = QPainter(printer)
+            # PDF в изображения
+            images = self.pdf_to_images(report_file_path, printer.resolution())
 
-                # Печать каждого изображения
-                for i, img in enumerate(images):
-                    if i > 0:
-                        printer.newPage()  # Новая страница для всех кроме первой
+            #QPainter для печати
+            painter = QPainter(printer)
 
-                    # PIL.Image в QImage
-                    qimage = QImage(
-                        img.tobytes(),
-                        img.size[0],
-                        img.size[1],
-                        QImage.Format_RGB888
-                    )
+            # Печать каждого изображения
+            for i, img in enumerate(images):
+                if i > 0:
+                    printer.newPage()  # Новая страница для всех кроме первой
 
-                    # Рисование изображения на принтере
-                    painter.drawImage(printer.pageRect(), qimage)
+                # PIL.Image в QImage
+                qimage = QImage(
+                    img.tobytes(),
+                    img.size[0],
+                    img.size[1],
+                    QImage.Format_RGB888
+                )
 
-            except Exception as e:
-                # Обработка ошибок
-                QMessageBox.critical(self, "Ошибка", f"Не удалось распечатать документ: {str(e)}")
-            finally:
-                # Завершение печати, если painter был создан
-                if painter is not None:
-                    painter.end()
+                # Рисование изображения на принтере
+                painter.drawImage(printer.pageRect(), qimage)
+
+            if painter is not None:
+                painter.end()
 
     def get_sales_date_range(self):
         # Переменные для минимальной и максимальной даты периода
